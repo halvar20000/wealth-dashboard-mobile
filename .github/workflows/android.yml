@@ -11,6 +11,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# The release step writes a release; nothing else needs more than a read.
+permissions:
+  contents: write
+
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
