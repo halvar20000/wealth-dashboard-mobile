@@ -10,7 +10,7 @@ composeBom = "2024.09.03"
 navigation = "2.8.0"
 okhttp = "4.12.0"
 serialization = "1.7.3"
-securityCrypto = "1.0.0"
+securityCrypto = "1.1.0-alpha06"
 biometric = "1.1.0"
 fragment = "1.8.4"
 

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -80,12 +81,15 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(account?.name ?: when (tab) {
-                    Tab.Overview -> "Overview"
-                    Tab.Accounts -> "Accounts"
-                    Tab.Transactions -> "Transactions"
-                    Tab.Settings -> "Settings"
-                }) },
+                title = {
+                    val heading = when (tab) {
+                        Tab.Overview -> "Overview"
+                        Tab.Accounts -> "Accounts"
+                        Tab.Transactions -> "Transactions"
+                        Tab.Settings -> "Settings"
+                    }
+                    Text(account?.name ?: heading)
+                },
                 actions = {
                     IconButton(onClick = { vm.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")

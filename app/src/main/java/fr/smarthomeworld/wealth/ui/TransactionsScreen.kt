@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -31,8 +32,7 @@ fun TransactionsScreen(
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
             }
-            return@Column
-        }
+        } else {
         Text(
             "${page.returned} of ${page.matched}",
             style = MaterialTheme.typography.bodySmall,
@@ -63,6 +63,7 @@ fun TransactionsScreen(
                 }
             }
             item { Spacer(Modifier.height(24.dp)) }
+        }
         }
     }
 }
