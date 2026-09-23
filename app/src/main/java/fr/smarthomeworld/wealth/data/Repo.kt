@@ -32,6 +32,36 @@ class Repo(private val store: Store) {
      *  sheet offers before it has asked the dashboard anything. */
     fun accounts(): List<Account> = store.cached()?.first?.accounts.orEmpty()
 
+    // ── The portfolio ────────────────────────────────────────────
+
+    data class Portfolio(
+        val holdings: List<Holding> = emptyList(),
+        val allocation: Allocation = Allocation(),
+        val returns: Returns = Returns(),
+        val history: History = History(),
+        val baseCurrency: String = "EUR",
+        val pricesAsOf: String? = null,
+    )
+
+    /** One page, four calls. The chart's period is the only thing the
+     *  page changes on its own, so it can be fetched by itself. */
+    suspend fun portfolio(period: String = "1y"): Portfolio = withContext(Dispatchers.IO) {
+        val api = store.api()
+        val held = api.holdings()
+        Portfolio(
+            holdings = held.holdings.sortedByDescending { it.valueBase },
+            allocation = runCatching { api.allocation() }.getOrDefault(Allocation()),
+            returns = runCatching { api.returns() }.getOrDefault(Returns()),
+            history = runCatching { api.history(period) }.getOrDefault(History()),
+            baseCurrency = held.baseCurrency,
+            pricesAsOf = held.pricesAsOf,
+        )
+    }
+
+    suspend fun history(period: String): History = withContext(Dispatchers.IO) {
+        store.api().history(period)
+    }
+
     // ── The triage ───────────────────────────────────────────────
     //
     // Two queues, one shape: a row waiting for a category, and a row

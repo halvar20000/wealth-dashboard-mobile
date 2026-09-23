@@ -27,6 +27,15 @@ object Fmt {
         return (if (value >= 0) "+" else "−") + body
     }
 
+    /** Units of a security: whole where they are whole, because
+     *  "1'061" reads better than "1'061.000". */
+    fun quantity(value: Double?): String {
+        if (value == null) return "—"
+        val f = NumberFormat.getNumberInstance(Locale.getDefault())
+        f.maximumFractionDigits = if (value == Math.floor(value)) 0 else 3
+        return f.format(value)
+    }
+
     fun percent(fraction: Double?): String {
         if (fraction == null) return "—"
         val v = fraction * 100

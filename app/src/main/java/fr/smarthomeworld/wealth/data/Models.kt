@@ -58,6 +58,8 @@ data class ClassValue(val name: String = "", val value: Double = 0.0)
 /** One window of the return: the percentage, and the gain in money. */
 @Serializable
 data class Period(
+    /** Set only where the figure belongs to one security. */
+    val name: String? = null,
     val since: String? = null,
     val twr: Double? = null,
     @SerialName("twr_annual") val twrAnnual: Double? = null,
@@ -229,3 +231,84 @@ data class Verdict(
 @Serializable
 data class PeopleList(val people: List<Person> = emptyList())
 
+
+// ─── The portfolio ───────────────────────────────────────────────
+//
+// Four calls make the page: what is held, where the money sits, how it
+// has done, and the line of the net worth over time.
+
+/** One security, as the trades add up to it. */
+@Serializable
+data class Holding(
+    val isin: String = "",
+    val name: String = "",
+    val symbol: String? = null,
+    val currency: String? = null,
+    val quantity: Double = 0.0,
+    @SerialName("net_invested") val invested: Double = 0.0,
+    val price: Double? = null,
+    @SerialName("price_as_of") val priceAsOf: String? = null,
+    @SerialName("price_kind") val priceKind: String? = null,
+    @SerialName("last_trade") val lastTrade: String? = null,
+    val value: Double = 0.0,
+    @SerialName("value_base") val valueBase: Double = 0.0,
+    val accounts: List<String> = emptyList(),
+    @SerialName("incomplete_history") val incompleteHistory: Boolean = false,
+) {
+    /** What it is worth now less what went in — the money answer, next
+     *  to the percentage one the return gives. */
+    val gain: Double get() = valueBase - invested
+}
+
+@Serializable
+data class Holdings(
+    @SerialName("base_currency") val baseCurrency: String = "EUR",
+    @SerialName("prices_as_of") val pricesAsOf: String? = null,
+    val holdings: List<Holding> = emptyList(),
+)
+
+@Serializable
+data class HistoryPoint(
+    val date: String = "",
+    @SerialName("net_worth") val netWorth: Double? = null,
+)
+
+@Serializable
+data class History(
+    @SerialName("base_currency") val baseCurrency: String = "EUR",
+    val period: String = "",
+    @SerialName("first_date") val firstDate: String? = null,
+    val points: List<HistoryPoint> = emptyList(),
+)
+
+@Serializable
+data class AllocationRow(
+    val key: String = "",
+    val value: Double = 0.0,
+    val share: Double = 0.0,
+    val target: Double? = null,
+    val drift: Double? = null,
+)
+
+@Serializable
+data class Dimension(
+    @SerialName("has_targets") val hasTargets: Boolean = false,
+    val rows: List<AllocationRow> = emptyList(),
+)
+
+@Serializable
+data class Allocation(
+    val total: Double = 0.0,
+    val cash: Double = 0.0,
+    val dimensions: Map<String, Dimension> = emptyMap(),
+)
+
+/** The return tool: the whole portfolio over three windows, and one
+ *  entry per holding under its ISIN. */
+@Serializable
+data class Returns(
+    val all: Period? = null,
+    val ytd: Period? = null,
+    @SerialName("1y") val year: Period? = null,
+    val holdings: Map<String, Period> = emptyMap(),
+)

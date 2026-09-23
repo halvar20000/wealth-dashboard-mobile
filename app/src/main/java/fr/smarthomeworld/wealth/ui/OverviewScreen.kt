@@ -26,6 +26,9 @@ fun OverviewScreen(
     at: Long,
     stale: Boolean,
     error: String?,
+    /** The net worth over the last year, for the line under the figure.
+     *  Empty until it has been fetched — the page works without it. */
+    history: List<Double> = emptyList(),
     onAccounts: () -> Unit,
     onTransactions: () -> Unit,
 ) {
@@ -58,6 +61,10 @@ fun OverviewScreen(
                 Text(when_, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+
+        if (history.size > 1) {
+            item { LineChart(history, Modifier.fillMaxWidth().height(150.dp)) }
         }
 
         if (error != null) {

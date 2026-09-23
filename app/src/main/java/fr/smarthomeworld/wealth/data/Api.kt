@@ -158,6 +158,36 @@ class Api(private val baseUrl: String, private val token: String?) {
         }
     }
 
+    // ── The portfolio ────────────────────────────────────────────
+
+    /** Every security held, worked out from the trades. */
+    fun holdings(): Holdings {
+        val text = get("/api/v1/tools/holdings")
+        val reply = json.decodeFromString(ToolReply.serializer(Holdings.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+    }
+
+    /** The net worth on a set of days — the line on the chart. */
+    fun history(period: String = "1y"): History {
+        val text = get("/api/v1/tools/net_worth_history", mapOf("period" to period))
+        val reply = json.decodeFromString(ToolReply.serializer(History.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+    }
+
+    /** Where the money sits: by asset class, by region, by bucket. */
+    fun allocation(): Allocation {
+        val text = get("/api/v1/tools/allocation")
+        val reply = json.decodeFromString(ToolReply.serializer(Allocation.serializer()), text)
+        return reply.result ?: Allocation()
+    }
+
+    /** The return of the whole portfolio and of each holding. */
+    fun returns(): Returns {
+        val text = get("/api/v1/tools/performance")
+        val reply = json.decodeFromString(ToolReply.serializer(Returns.serializer()), text)
+        return reply.result ?: Returns()
+    }
+
     /** The queue of rows with no category, biggest first. */
     fun uncategorised(limit: Int = 60): Queue {
         val text = get("/api/v1/tools/uncategorised", mapOf("limit" to limit.toString()))

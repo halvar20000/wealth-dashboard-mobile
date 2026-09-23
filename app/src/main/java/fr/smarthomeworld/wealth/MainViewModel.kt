@@ -7,7 +7,11 @@ import fr.smarthomeworld.wealth.data.Api
 import fr.smarthomeworld.wealth.data.Repo
 import fr.smarthomeworld.wealth.data.Snapshot
 import fr.smarthomeworld.wealth.data.Store
+import fr.smarthomeworld.wealth.data.Allocation
 import fr.smarthomeworld.wealth.data.Category
+import fr.smarthomeworld.wealth.data.History
+import fr.smarthomeworld.wealth.data.Holding
+import fr.smarthomeworld.wealth.data.Returns
 import fr.smarthomeworld.wealth.data.Person
 import fr.smarthomeworld.wealth.data.TransactionPage
 import fr.smarthomeworld.wealth.data.Verdict
@@ -44,6 +48,20 @@ data class TriageState(
     val error: String? = null,
 )
 
+/** The portfolio page: what is held, where it sits, how it has done,
+ *  and the line of the net worth over the chosen window. */
+data class PortfolioState(
+    val loading: Boolean = false,
+    val period: String = "1y",
+    val holdings: List<Holding> = emptyList(),
+    val allocation: Allocation = Allocation(),
+    val returns: Returns = Returns(),
+    val history: History = History(),
+    val baseCurrency: String = "EUR",
+    val total: Double? = null,
+    val error: String? = null,
+)
+
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val store = Store(app)
@@ -54,6 +72,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _txns = MutableStateFlow<TransactionPage?>(null)
     val txns: StateFlow<TransactionPage?> = _txns.asStateFlow()
+
+    private val _portfolio = MutableStateFlow(PortfolioState())
+    val portfolio: StateFlow<PortfolioState> = _portfolio.asStateFlow()
 
     private val _triage = MutableStateFlow(TriageState())
     val triage: StateFlow<TriageState> = _triage.asStateFlow()
@@ -71,7 +92,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             stale = cached != null,
             serverName = store.serverName,
         )
-        if (store.paired) refresh()
+        if (store.paired) { refresh(); loadHistory() }
         // A round that was switched on survives a reboot and an update;
         // one that was switched off leaves nothing behind.
         Watcher.schedule(app, store.watch && store.paired)
@@ -140,6 +161,49 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _txns.value = null
         _state.value = UiState()
     }
+
+    // ── The portfolio ────────────────────────────────────────────
+
+    /** The whole page. Called when the tab is opened, and again by the
+     *  refresh button — not on every visit, because four calls to a
+     *  Raspberry Pi is a thing to ask for, not to assume. */
+    fun loadPortfolio(period: String = _portfolio.value.period) {
+        if (!store.paired) return
+        _portfolio.value = _portfolio.value.copy(loading = true, error = null, period = period)
+        viewModelScope.launch {
+            runCatching { repo.portfolio(period) }
+                .onSuccess { p ->
+                    _portfolio.value = PortfolioState(
+                        loading = false, period = period, holdings = p.holdings,
+                        allocation = p.allocation, returns = p.returns, history = p.history,
+                        baseCurrency = p.baseCurrency,
+                        total = _state.value.snapshot?.netWorth?.total)
+                }
+                .onFailure { e ->
+                    _portfolio.value = _portfolio.value.copy(
+                        loading = false,
+                        error = (e as? Api.Failure)?.message ?: e.message
+                            ?: "Das Dashboard war nicht erreichbar.")
+                }
+        }
+    }
+
+    /** Only the chart's window changed — one call, not four. The same
+     *  call fills the line under the overview's figure at start-up. */
+    fun loadHistory(period: String = _portfolio.value.period) {
+        if (!store.paired) return
+        _portfolio.value = _portfolio.value.copy(loading = true, period = period, error = null)
+        viewModelScope.launch {
+            runCatching { repo.history(period) }
+                .onSuccess { _portfolio.value = _portfolio.value.copy(loading = false, history = it) }
+                .onFailure { e ->
+                    _portfolio.value = _portfolio.value.copy(
+                        loading = false, error = e.message ?: "Der Verlauf kam nicht an.")
+                }
+        }
+    }
+
+    fun setPeriod(period: String) = loadHistory(period)
 
     // ── The triage ───────────────────────────────────────────────
 

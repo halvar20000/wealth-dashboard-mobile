@@ -12,6 +12,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -66,7 +67,7 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-private enum class Tab { Overview, Accounts, Triage, Transactions, Settings }
+private enum class Tab { Overview, Portfolio, Triage, Transactions, Settings }
 
 /** What the shortcut sends; an explicit component, so no filter is
  *  needed for it. */
@@ -78,6 +79,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
     val state by vm.state.collectAsStateWithLifecycle()
     val txns by vm.txns.collectAsStateWithLifecycle()
     val triage by vm.triage.collectAsStateWithLifecycle()
+    val portfolio by vm.portfolio.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(start) }
     LaunchedEffect(start) { if (start == Tab.Triage) vm.loadTriage(owning = false) }
     var account by remember { mutableStateOf<Account?>(null) }
@@ -97,7 +99,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 title = {
                     val heading = when (tab) {
                         Tab.Overview -> "Overview"
-                        Tab.Accounts -> "Accounts"
+                        Tab.Portfolio -> "Portfolio"
                         Tab.Triage -> "Triage"
                         Tab.Transactions -> "Transactions"
                         Tab.Settings -> "Settings"
@@ -118,9 +120,9 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     onClick = { tab = Tab.Overview; account = null },
                     icon = { Icon(Icons.Default.Insights, null) }, label = { Text("Overview") })
                 NavigationBarItem(
-                    selected = tab == Tab.Accounts,
-                    onClick = { tab = Tab.Accounts; account = null },
-                    icon = { Icon(Icons.Default.AccountBalance, null) }, label = { Text("Accounts") })
+                    selected = tab == Tab.Portfolio,
+                    onClick = { tab = Tab.Portfolio; account = null; vm.loadPortfolio() },
+                    icon = { Icon(Icons.Default.PieChart, null) }, label = { Text("Portfolio") })
                 NavigationBarItem(
                     selected = tab == Tab.Triage,
                     onClick = { tab = Tab.Triage; account = null; vm.loadTriage(owning = false) },
@@ -151,6 +153,13 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 tab == Tab.Transactions -> TransactionsScreen(txns, "everything") { q ->
                     vm.loadTransactions(null, q)
                 }
+                tab == Tab.Portfolio -> PortfolioScreen(
+                    state = portfolio,
+                    accounts = snap?.accounts.orEmpty(),
+                    onPeriod = { vm.setPeriod(it) },
+                    onAccount = { account = it; vm.loadTransactions(it.id) },
+                    onRefresh = { vm.loadPortfolio() },
+                )
                 tab == Tab.Triage -> Column(Modifier.fillMaxSize()) {
                     // Two queues, one screen: what has no category, and
                     // what nobody has claimed. The dashboard counts both.
@@ -188,12 +197,10 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 snap == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Text(state.error ?: "Nothing yet — pull to refresh.", Modifier.padding(24.dp))
                 }
-                tab == Tab.Accounts -> AccountsScreen(snap.accounts, snap.baseCurrency) { a ->
-                    account = a; vm.loadTransactions(a.id)
-                }
                 else -> OverviewScreen(
                     snapshot = snap, at = state.at, stale = state.stale, error = state.error,
-                    onAccounts = { tab = Tab.Accounts },
+                    history = portfolio.history.points.mapNotNull { it.netWorth },
+                    onAccounts = { tab = Tab.Portfolio; vm.loadPortfolio() },
                     onTransactions = { tab = Tab.Transactions; vm.loadTransactions() },
                 )
             }
