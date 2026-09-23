@@ -86,5 +86,15 @@ class Store(context: Context) {
         .putString("pending", Api.json.encodeToString(ListSerializer(Verdict.serializer()), list))
         .apply()
 
+    /** Whether the background round runs, and the last thing it said —
+     *  so that it does not say the same thing every three hours. */
+    var watch: Boolean
+        get() = prefs.getBoolean("watch", false)
+        set(value) = prefs.edit().putBoolean("watch", value).apply()
+
+    var lastNotice: String?
+        get() = prefs.getString("last_notice", null)
+        set(value) = prefs.edit().putString("last_notice", value).apply()
+
     fun api(): Api = Api(baseUrl.orEmpty(), token)
 }

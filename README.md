@@ -98,10 +98,27 @@ figure that moves once a day. The app redraws it after each refresh;
 tapping the line at the bottom fetches a fresh one, and tapping the
 figure opens the app.
 
+## Watching in the background
+
+**Settings → Watch in the background** turns on a round every three
+hours, when the phone has a network: it sends what your thumb decided
+offline, refreshes the figures and the widget, and — only when there is
+something to say — puts one line on the lock screen:
+
+- an account that runs out within the month, with the payment that
+  does it,
+- a bank link that has stopped syncing,
+- a queue that has grown past ten rows.
+
+It says each thing once. There is no push server in the middle and
+none is wanted: your dashboard is on your own network, and a poll every
+three hours costs one request. If you would rather be told the moment
+something happens, the dashboard's webhooks speak
+[ntfy](https://ntfy.sh) — point them at your own topic and let the ntfy
+app deliver it.
+
 ## Still to come
 
-- **Notifications** through your own ntfy: the dashboard's webhooks can
-  already speak it.
 - Quick-Settings tile for *sync now*, app shortcuts, Wear complication.
 
 ## Licence

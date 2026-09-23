@@ -1,6 +1,10 @@
 package fr.smarthomeworld.wealth
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.biometric.BiometricManager
@@ -166,7 +170,9 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit) {
                 tab == Tab.Settings -> SettingsScreen(
                     server = state.serverName,
                     lock = vm.lockEnabled,
+                    watch = vm.watchEnabled,
                     onLock = { vm.setLock(it) },
+                    onWatch = { vm.setWatch(it) },
                     onForget = { vm.forget() },
                 )
                 snap == null && state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -195,10 +201,17 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit) {
 private fun SettingsScreen(
     server: String?,
     lock: Boolean,
+    watch: Boolean,
     onLock: (Boolean) -> Unit,
+    onWatch: (Boolean) -> Unit,
     onForget: () -> Unit,
 ) {
     var locked by remember { mutableStateOf(lock) }
+    var watching by remember { mutableStateOf(watch) }
+    // Android 13 asks before anything may reach the lock screen. Ask at
+    // the moment the switch is turned on, which is the moment it makes
+    // sense — not on the first start, when it means nothing yet.
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Paired with ${server ?: "your dashboard"}", style = MaterialTheme.typography.bodyLarge)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
@@ -210,6 +223,24 @@ private fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(checked = locked, onCheckedChange = { locked = it; onLock(it) })
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Watch in the background", style = MaterialTheme.typography.bodyMedium)
+                Text("Every few hours: send what you decided offline, refresh the " +
+                     "figures and the widget, and say something when an account is " +
+                     "about to run out, a bank link has stopped, or the queue has grown.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = watching, onCheckedChange = {
+                watching = it
+                onWatch(it)
+                if (it && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ask.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            })
         }
         OutlinedButton(onClick = onForget) { Text("Forget this dashboard") }
         Text(

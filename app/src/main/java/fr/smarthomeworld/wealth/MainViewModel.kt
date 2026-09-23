@@ -13,6 +13,7 @@ import fr.smarthomeworld.wealth.data.TransactionPage
 import fr.smarthomeworld.wealth.data.Verdict
 import fr.smarthomeworld.wealth.data.Waiting1
 import fr.smarthomeworld.wealth.widget.refreshWidgets
+import fr.smarthomeworld.wealth.work.Watcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,6 +59,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val triage: StateFlow<TriageState> = _triage.asStateFlow()
 
     val lockEnabled: Boolean get() = store.lockEnabled
+    val watchEnabled: Boolean get() = store.watch
 
     init {
         val cached = repo.cached()
@@ -70,11 +72,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             serverName = store.serverName,
         )
         if (store.paired) refresh()
+        // A round that was switched on survives a reboot and an update;
+        // one that was switched off leaves nothing behind.
+        Watcher.schedule(app, store.watch && store.paired)
     }
 
     fun unlock() {
         _state.value = _state.value.copy(locked = false)
         if (_state.value.snapshot == null) refresh()
+    }
+
+    /** The background round, and with it the notices. */
+    fun setWatch(on: Boolean) {
+        store.watch = on
+        if (!on) store.lastNotice = null
+        Watcher.schedule(getApplication<Application>(), on && store.paired)
+        _state.value = _state.value.copy()
     }
 
     fun setLock(on: Boolean) {
