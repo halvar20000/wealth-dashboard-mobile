@@ -66,6 +66,9 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          # Only needed for a keystore whose type the runtime would not
+          # guess — an old JKS written with -storetype JKS, say.
+          KEYSTORE_TYPE: ${{ secrets.KEYSTORE_TYPE }}
         run: gradle :app:assembleRelease :app:bundleRelease --no-daemon --stacktrace
 
       - name: Forget the keystore

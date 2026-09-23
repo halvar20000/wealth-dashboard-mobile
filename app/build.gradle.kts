@@ -35,10 +35,13 @@ android {
         if (!keystore.isNullOrBlank()) {
             create("release") {
                 storeFile = file(keystore)
-                // The upload key is a PKCS#12 file. Java 17 would
-                // default to it anyway; saying so means a .jks dropped
-                // in later fails loudly instead of at signing time.
-                storeType = "PKCS12"
+                // Left to the runtime unless the environment names a
+                // type: keytool has written PKCS#12 by default since
+                // JDK 9, and Java's compatibility mode reads an older
+                // JKS through the same default — so a keystore from
+                // any tool works here unchanged.
+                System.getenv("KEYSTORE_TYPE")?.takeIf { it.isNotBlank() }
+                    ?.let { storeType = it }
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
