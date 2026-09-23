@@ -10,7 +10,7 @@
         android:shortcutLongLabel="@string/shortcut_triage_long">
         <intent
             android:action="fr.smarthomeworld.wealth.action.TRIAGE"
-            android:targetPackage="fr.smarthomeworld.wealth"
+            android:targetPackage="com.herbrig.wealthdashboard"
             android:targetClass="fr.smarthomeworld.wealth.MainActivity" />
     </shortcut>
 </shortcuts>

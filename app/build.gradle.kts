@@ -10,7 +10,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "fr.smarthomeworld.wealth"
+        // The name Play locked in when the listing was created. It can
+        // never be changed there, so it is the app that gives way. The
+        // `namespace` above is only where the classes live and stays
+        // put — renaming it would move every source file for nothing.
+        applicationId = "com.herbrig.wealthdashboard"
         minSdk = 26
         targetSdk = 35
         // The tag is the version: v1.2.3 builds versionName 1.2.3 and
