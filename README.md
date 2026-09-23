@@ -87,10 +87,19 @@ send*.
 The *Whose* queue needs a dashboard on **0.72.4 or newer** (the `people`
 and `unowned_spending` tools); the category queue works with any.
 
+## The home screen
+
+Long-press the home screen, **Widgets → Wealth**: net worth, today's
+and the month's return, and how many rows are waiting to be filed.
+
+It draws the app's own cache and asks the dashboard for nothing of its
+own — a widget that wakes the radio every half hour costs battery for a
+figure that moves once a day. The app redraws it after each refresh;
+tapping the line at the bottom fetches a fresh one, and tapping the
+figure opens the app.
+
 ## Still to come
 
-- **Home-screen widgets** (Glance): net worth, the performance strip,
-  what is due next.
 - **Notifications** through your own ntfy: the dashboard's webhooks can
   already speak it.
 - Quick-Settings tile for *sync now*, app shortcuts, Wear complication.

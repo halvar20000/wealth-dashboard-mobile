@@ -55,5 +55,18 @@
                 <data android:mimeType="application/zip" />
             </intent-filter>
         </activity>
+
+        <!-- The home screen. It draws the app's cache, so it costs no
+             network of its own; the app updates it after a refresh. -->
+        <receiver
+            android:name=".widget.WealthWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/wealth_widget_info" />
+        </receiver>
     </application>
 </manifest>

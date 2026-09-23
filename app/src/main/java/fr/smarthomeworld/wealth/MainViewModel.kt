@@ -12,6 +12,7 @@ import fr.smarthomeworld.wealth.data.Person
 import fr.smarthomeworld.wealth.data.TransactionPage
 import fr.smarthomeworld.wealth.data.Verdict
 import fr.smarthomeworld.wealth.data.Waiting1
+import fr.smarthomeworld.wealth.widget.refreshWidgets
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -89,6 +90,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 .onSuccess {
                     _state.value = _state.value.copy(
                         loading = false, snapshot = it.snapshot, at = it.at, stale = false, error = null)
+                    // The home screen draws the same cache; redraw it now,
+                    // so the two never disagree about today's figure.
+                    refreshWidgets(getApplication<Application>())
                 }
                 .onFailure { e ->
                     // A refresh that fails keeps what was on screen: the
