@@ -1,7 +1,7 @@
 # Pinned on purpose: an app nobody builds for six months should still
 # build. Bump deliberately, one line at a time.
 [versions]
-agp = "8.5.2"
+agp = "8.7.3"
 kotlin = "2.0.20"
 coreKtx = "1.13.1"
 lifecycle = "2.8.6"

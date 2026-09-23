@@ -46,10 +46,16 @@ gradle wrapper                   # if you would rather have ./gradlew
 ```
 
 Every push builds the debug APK in CI and hangs it off the run; a `v*`
-tag builds a release APK and makes a GitHub release of it. To have CI
-sign it, put a keystore in the repository's secrets as
-`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`;
-without them the release APK is unsigned and you sign it yourself.
+tag builds a release APK **and the `.aab` bundle Google Play wants**,
+and makes a GitHub release of both. To have CI sign them, put a
+keystore in the repository's secrets as `KEYSTORE_BASE64`,
+`KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`; Gradle then signs the
+APK and the bundle with the same key. Without them the release build is
+unsigned.
+
+[`STORE.md`](STORE.md) has the listing text and what is still left to
+do by hand before a first upload; [`PRIVACY.md`](PRIVACY.md) is the
+policy Play asks for a URL to.
 
 ## Sharing a statement into an account
 
@@ -117,9 +123,17 @@ something happens, the dashboard's webhooks speak
 [ntfy](https://ntfy.sh) — point them at your own topic and let the ntfy
 app deliver it.
 
+## Two taps fewer
+
+- **Quick Settings**: add the **Sync now** tile to the pull-down shade —
+  for the moment after you have moved money and want the figure to
+  agree with the bank. The tile says when it last managed it.
+- **Long-press the icon**: **Triage** opens the card stack straight
+  away.
+
 ## Still to come
 
-- Quick-Settings tile for *sync now*, app shortcuts, Wear complication.
+- A Wear complication, if there is ever a reason for one.
 
 ## Licence
 

@@ -7,20 +7,37 @@ plugins {
 
 android {
     namespace = "fr.smarthomeworld.wealth"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "fr.smarthomeworld.wealth"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+    }
+
+    // Signed from the environment, or not at all: a keystore in the
+    // repository would be a key everybody has. CI writes the file and
+    // sets these four; on a laptop without them the release build is
+    // simply unsigned, which is what `assembleDebug` is for anyway.
+    signingConfigs {
+        val keystore = System.getenv("KEYSTORE_FILE")
+        if (!keystore.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(keystore)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {

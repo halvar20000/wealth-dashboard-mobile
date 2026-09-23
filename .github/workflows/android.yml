@@ -45,29 +45,37 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      - name: Assemble the release APK
+      # The keystore, if this repository has one. Gradle signs with it —
+      # both the APK people sideload and the bundle Play wants — so the
+      # two can never be signed by different things.
+      - name: Unpack the keystore
         if: startsWith(github.ref, 'refs/tags/v')
-        run: gradle :app:assembleRelease --no-daemon --stacktrace
-
-      - name: Sign it, if this repository has a keystore
-        if: startsWith(github.ref, 'refs/tags/v') && env.KEYSTORE != ''
         env:
           KEYSTORE: ${{ secrets.KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "No KEYSTORE_BASE64 secret: the release will be unsigned."
+            exit 0
+          fi
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/keystore.jks"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/keystore.jks" >> "$GITHUB_ENV"
+
+      - name: Assemble the release APK and the Play bundle
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          echo "$KEYSTORE" | base64 -d > /tmp/keystore.jks
-          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          "$BT/apksigner" sign --ks /tmp/keystore.jks \
-            --ks-pass "pass:$STORE_PASSWORD" --ks-key-alias "$KEY_ALIAS" \
-            --key-pass "pass:$KEY_PASSWORD" \
-            --out app/build/outputs/apk/release/wealth-signed.apk \
-            app/build/outputs/apk/release/app-release-unsigned.apk
-          rm -f /tmp/keystore.jks
+        run: gradle :app:assembleRelease :app:bundleRelease --no-daemon --stacktrace
+
+      - name: Forget the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/keystore.jks"
 
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
-          files: app/build/outputs/apk/release/*.apk
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
           generate_release_notes: true
