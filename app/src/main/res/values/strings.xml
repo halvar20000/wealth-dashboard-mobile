@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Wealth</string>
     <string name="share_label">Import into Wealth</string>
-    <string name="widget_description">Net worth, the day's return, and what is waiting to be filed.</string>
+    <string name="widget_description">Net worth, today\'s return, and what is waiting to be filed.</string>
 </resources>
