@@ -25,6 +25,13 @@ class Repo(private val store: Store) {
     suspend fun transactions(accountId: Int? = null, query: String? = null, limit: Int = 100) =
         withContext(Dispatchers.IO) { store.api().transactions(accountId, query, limit) }
 
+    suspend fun importFiles(accountId: Int, files: List<Api.Upload>): ImportReply =
+        withContext(Dispatchers.IO) { store.api().importFiles(accountId, files) }
+
+    /** The accounts as the last snapshot knew them — what the share
+     *  sheet offers before it has asked the dashboard anything. */
+    fun accounts(): List<Account> = store.cached()?.first?.accounts.orEmpty()
+
     suspend fun pair(url: String, code: String): Paired = withContext(Dispatchers.IO) {
         val reply = Api.pair(url, code)
         store.pair(url, reply)

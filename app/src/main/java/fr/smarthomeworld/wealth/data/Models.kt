@@ -139,3 +139,29 @@ data class Txn(
     val quantity: Double? = null,
     val price: Double? = null,
 )
+
+/** What an import answered: the reader that read it, and what it did. */
+@Serializable
+data class ImportReply(
+    val ok: Boolean = false,
+    val account: ImportAccount? = null,
+    val result: ImportResult? = null,
+    val error: String? = null,
+    val files: List<String> = emptyList(),
+)
+
+@Serializable
+data class ImportAccount(val id: Int = 0, val name: String = "")
+
+@Serializable
+data class ImportResult(
+    val label: String? = null,
+    val inserted: Int = 0,
+    val duplicates: Int = 0,
+    val skipped: Int = 0,
+    val parsed: Int = 0,
+    val problems: List<String> = emptyList(),
+    val notes: List<String> = emptyList(),
+    val unrecognised: List<String> = emptyList(),
+)
+

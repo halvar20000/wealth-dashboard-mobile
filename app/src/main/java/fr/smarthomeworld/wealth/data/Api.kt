@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -25,6 +26,9 @@ import java.util.concurrent.TimeUnit
 class Api(private val baseUrl: String, private val token: String?) {
 
     class Failure(val status: Int, message: String) : IOException(message)
+
+    /** A file on its way to the dashboard: its bytes, its name, its type. */
+    data class Upload(val name: String, val mime: String?, val bytes: ByteArray)
 
     companion object {
         val json = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
@@ -89,6 +93,36 @@ class Api(private val baseUrl: String, private val token: String?) {
         val text = get("/api/v1/tools/snapshot", mapOf("days" to days.toString()))
         val reply = json.decodeFromString(ToolReply.serializer(Snapshot.serializer()), text)
         return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+    }
+
+    /**
+     * A statement into an account, as the import page takes it: the
+     * field name is `file`, several at once are allowed, and the
+     * dashboard answers with the report it would have shown on screen.
+     * The bytes are read into memory — a statement is a few hundred
+     * kilobytes, and a phone's share sheet hands over a stream that
+     * does not survive the request being retried.
+     */
+    fun importFiles(accountId: Int, files: List<Upload>): ImportReply {
+        if (files.isEmpty()) throw Failure(0, "Nothing to send.")
+        val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+        files.forEach { f ->
+            body.addFormDataPart("file", f.name,
+                f.bytes.toRequestBody((f.mime ?: "application/octet-stream").toMediaType()))
+        }
+        val req = Request.Builder().url("$baseUrl/api/v1/accounts/$accountId/import")
+            .header("Authorization", "Bearer ${token.orEmpty()}")
+            .header("Accept", "application/json")
+            .post(body.build()).build()
+        client.newCall(req).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            val reply = runCatching { json.decodeFromString<ImportReply>(text) }.getOrNull()
+            if (reply == null) throw Failure(resp.code, "The dashboard answered ${resp.code}.")
+            if (!resp.isSuccessful || !reply.ok) {
+                throw Failure(resp.code, reply.error ?: "The dashboard answered ${resp.code}.")
+            }
+            return reply
+        }
     }
 
     fun transactions(accountId: Int? = null, query: String? = null, limit: Int = 100): TransactionPage {

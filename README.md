@@ -7,9 +7,10 @@ cannot do — the figures on the home screen, a statement shared straight
 from the bank's app, the categorisation queue as a card stack, a
 notification when a sync fails.
 
-**Where it is:** phase 1. Pairing, the overview with the performance
-strip, the accounts, the transactions, a lock, and figures that survive
-a tunnel going down. The rest is listed below.
+**Where it is:** phase 1, plus the share sheet. Pairing, the overview
+with the performance strip, the accounts, the transactions, a lock,
+figures that survive a tunnel going down — and a statement shared from
+any app straight into an account. The rest is listed below.
 
 ## Pairing
 
@@ -50,10 +51,20 @@ sign it, put a keystore in the repository's secrets as
 `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`;
 without them the release APK is unsigned and you sign it yourself.
 
+## Sharing a statement into an account
+
+Open the statement in the bank's app, in a file manager or in
+Paperless, **Share → Import into Wealth**, and pick the account. The
+file goes to the dashboard as it is; the dashboard reads it with the
+same readers the import page uses and answers with the same report —
+how many rows were new, how many it already had, and, where it applies,
+why some were left out or that the file is a scan with no text in it.
+
+Several files at once work too. Nothing is stored on the phone: the
+bytes are read while the share is open and sent.
+
 ## Still to come
 
-- **Share sheet**: receive a PDF or CSV from any app and post it to an
-  account's import (the server endpoint is already there).
 - **Home-screen widgets** (Glance): net worth, the performance strip,
   what is due next.
 - **Swipe triage**: the uncategorised queue and *Who spent*, one thumb,

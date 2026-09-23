@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Wealth</string>
+    <string name="share_label">Import into Wealth</string>
 </resources>
