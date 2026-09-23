@@ -53,6 +53,9 @@ keystore in the repository's secrets as `KEYSTORE_BASE64`,
 APK and the bundle with the same key. Without them the release build is
 unsigned.
 
+The app targets **API 36**, which is what Google Play requires of a
+new release; it uses nothing from that level beyond being let in.
+
 The version comes from the tag: `v1.2.3` builds `versionName 1.2.3`
 and `versionCode 10203`, so nothing has to be edited before a release
 and Play never sees a code twice.

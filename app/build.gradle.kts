@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "fr.smarthomeworld.wealth"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // The name Play locked in when the listing was created. It can
@@ -16,7 +16,7 @@ android {
         // put — renaming it would move every source file for nothing.
         applicationId = "com.herbrig.wealthdashboard"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // The tag is the version: v1.2.3 builds versionName 1.2.3 and
         // versionCode 10203. A number nobody types by hand is a number
         // nobody forgets to raise — and Play refuses a bundle whose
