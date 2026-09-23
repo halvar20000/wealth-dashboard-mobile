@@ -53,6 +53,10 @@ keystore in the repository's secrets as `KEYSTORE_BASE64`,
 APK and the bundle with the same key. Without them the release build is
 unsigned.
 
+The version comes from the tag: `v1.2.3` builds `versionName 1.2.3`
+and `versionCode 10203`, so nothing has to be edited before a release
+and Play never sees a code twice.
+
 [`STORE.md`](STORE.md) has the listing text and what is still left to
 do by hand before a first upload; [`PRIVACY.md`](PRIVACY.md) is the
 policy Play asks for a URL to.

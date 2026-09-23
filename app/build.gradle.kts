@@ -13,8 +13,17 @@ android {
         applicationId = "fr.smarthomeworld.wealth"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // The tag is the version: v1.2.3 builds versionName 1.2.3 and
+        // versionCode 10203. A number nobody types by hand is a number
+        // nobody forgets to raise — and Play refuses a bundle whose
+        // versionCode it has already seen. Off a tag it stays at the
+        // development version, which never reaches a store.
+        val tagged = Regex("^v?(\\d+)\\.(\\d+)\\.(\\d+)$")
+            .matchEntire(System.getenv("GITHUB_REF_NAME") ?: "")?.groupValues
+        versionCode = if (tagged != null)
+            tagged[1].toInt() * 10000 + tagged[2].toInt() * 100 + tagged[3].toInt() else 1
+        versionName = if (tagged != null)
+            "${tagged[1]}.${tagged[2]}.${tagged[3]}" else "0.2.0"
     }
 
     // Signed from the environment, or not at all: a keystore in the
