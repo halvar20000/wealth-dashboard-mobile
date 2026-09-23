@@ -35,6 +35,10 @@ android {
         if (!keystore.isNullOrBlank()) {
             create("release") {
                 storeFile = file(keystore)
+                // The upload key is a PKCS#12 file. Java 17 would
+                // default to it anyway; saying so means a .jks dropped
+                // in later fails loudly instead of at signing time.
+                storeType = "PKCS12"
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
