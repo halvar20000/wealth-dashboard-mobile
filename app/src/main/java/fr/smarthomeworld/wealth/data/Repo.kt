@@ -32,6 +32,73 @@ class Repo(private val store: Store) {
      *  sheet offers before it has asked the dashboard anything. */
     fun accounts(): List<Account> = store.cached()?.first?.accounts.orEmpty()
 
+    // ── The triage ───────────────────────────────────────────────
+    //
+    // Two queues, one shape: a row waiting for a category, and a row
+    // waiting for a person. A verdict is written down before it is
+    // sent, so the thumb never waits for the network and nothing is
+    // lost when there is none.
+
+    data class Triage(
+        val rows: List<Waiting1> = emptyList(),
+        val remaining: Int = 0,
+        val categories: List<Category> = emptyList(),
+        val people: List<Person> = emptyList(),
+    )
+
+    suspend fun categorisingQueue(limit: Int = 60): Triage = withContext(Dispatchers.IO) {
+        val api = store.api()
+        val queue = api.uncategorised(limit)
+        Triage(queue.transactions, queue.remaining, categories = api.categories())
+    }
+
+    suspend fun owningQueue(limit: Int = 60): Triage = withContext(Dispatchers.IO) {
+        val api = store.api()
+        val queue = api.unowned(limit)
+        Triage(queue.transactions, queue.remaining, people = api.people())
+    }
+
+    /** A decision: kept, then sent. Returns how many are still waiting. */
+    suspend fun decide(verdict: Verdict): Int = withContext(Dispatchers.IO) {
+        store.queue(verdict.copy(at = System.currentTimeMillis()))
+        flush()
+    }
+
+    /** Send what is waiting, oldest first; stop at the first failure
+     *  and keep the rest. Returns how many are still waiting. */
+    suspend fun flush(): Int = withContext(Dispatchers.IO) {
+        var left = store.pending()
+        if (left.isEmpty()) return@withContext 0
+        val api = store.api()
+        while (left.isNotEmpty()) {
+            val next = left.first()
+            try {
+                api.send(next)
+            } catch (e: Api.Failure) {
+                // The dashboard refused this one — a category that no
+                // longer exists, a row somebody deleted. Dropping it is
+                // right: retrying forever would block the queue.
+                if (e.status !in 400..499) break
+            } catch (e: Exception) {
+                break
+            }
+            left = left.drop(1)
+            store.savePending(left)
+        }
+        left.size
+    }
+
+    fun waiting(): Int = store.pending().size
+
+    /** Drop the last verdict, if it has not gone out yet. Returns how
+     *  many are waiting afterwards. */
+    fun undoLast(): Int {
+        val left = store.pending()
+        if (left.isEmpty()) return 0
+        store.savePending(left.dropLast(1))
+        return left.size - 1
+    }
+
     suspend fun pair(url: String, code: String): Paired = withContext(Dispatchers.IO) {
         val reply = Api.pair(url, code)
         store.pair(url, reply)

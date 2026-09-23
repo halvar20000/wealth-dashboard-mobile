@@ -63,12 +63,34 @@ why some were left out or that the file is a scan with no text in it.
 Several files at once work too. Nothing is stored on the phone: the
 bytes are read while the share is open and sent.
 
+## Triage: the queue, one thumb
+
+**Triage** is the tab in the middle. It deals with the two queues the
+dashboard keeps — the rows with no category, and the spending nobody in
+the household has claimed — as a stack of cards, one at a time:
+
+- **swipe right** takes the app's own guess (and remembers it as a rule,
+  the same rule the dashboard would have made),
+- **swipe left** leaves the row in the queue for another day,
+- **tap** opens the sheet: every category, the guess first and the ones
+  you actually use next; or the household plus *Shared*.
+
+The switch at the top turns the stack from *Category* to *Whose*.
+
+A verdict is written to the phone's encrypted store **before** it is
+sent, so the thumb never waits for the network — which is the point of
+doing this on a train. What is waiting goes out in order the next time
+the app has a network, oldest first; **Undo last** takes back a verdict
+that has not left the phone yet. The header counts both: *N left · M to
+send*.
+
+The *Whose* queue needs a dashboard on **0.72.4 or newer** (the `people`
+and `unowned_spending` tools); the category queue works with any.
+
 ## Still to come
 
 - **Home-screen widgets** (Glance): net worth, the performance strip,
   what is due next.
-- **Swipe triage**: the uncategorised queue and *Who spent*, one thumb,
-  offline, flushed when the phone is back on the network.
 - **Notifications** through your own ntfy: the dashboard's webhooks can
   already speak it.
 - Quick-Settings tile for *sync now*, app shortcuts, Wear complication.

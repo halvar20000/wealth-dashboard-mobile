@@ -165,3 +165,67 @@ data class ImportResult(
     val unrecognised: List<String> = emptyList(),
 )
 
+/** The queue: a row with no category, and the app's own first guess. */
+@Serializable
+data class Queue(
+    val remaining: Int = 0,
+    val transactions: List<Waiting1> = emptyList(),
+)
+
+@Serializable
+data class Waiting1(
+    val id: Int = 0,
+    @SerialName("account_id") val accountId: Int = 0,
+    @SerialName("account_name") val accountName: String? = null,
+    @SerialName("txn_date") val date: String = "",
+    val description: String? = null,
+    val counterparty: String? = null,
+    val amount: Double = 0.0,
+    val currency: String? = null,
+    val kind: String? = null,
+    /** What the app would file it under, if it had to guess. */
+    val suggestion: String? = null,
+    /** The words a rule would remember it by — shown, because a rule
+     *  made from the wrong words is the mistake that repeats itself. */
+    val pattern: String? = null,
+)
+
+/** A category as the dashboard knows it, for the sheet of choices. */
+@Serializable
+data class Category(
+    val slug: String = "",
+    val label: String = "",
+    val group: String? = null,
+    val colour: String? = null,
+    /** How many rows carry it — the sheet puts the used ones first. */
+    val transactions: Int = 0,
+) {
+    val spending: Boolean get() = group == "spending"
+}
+
+/** One of the household, for "whose spending is this". */
+@Serializable
+data class Person(val id: Int = 0, val name: String = "")
+
+/** A queue and how much of it is left, for both triages. */
+@Serializable
+data class Unowned(
+    val remaining: Int = 0,
+    val transactions: List<Waiting1> = emptyList(),
+)
+
+/** A decision taken on the phone, kept until the dashboard has it.
+ *  `owner` is a person's id as text, or "shared", or null. */
+@Serializable
+data class Verdict(
+    val txnId: Int,
+    val category: String? = null,
+    val pattern: String? = null,
+    val remember: Boolean = true,
+    val owner: String? = null,
+    val at: Long = 0L,
+)
+
+@Serializable
+data class PeopleList(val people: List<Person> = emptyList())
+

@@ -1,5 +1,8 @@
 package fr.smarthomeworld.wealth.data
 
+import java.io.IOException
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -8,7 +11,6 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -61,6 +63,37 @@ class Api(private val baseUrl: String, private val token: String?) {
                 }
                 return reply
             }
+        }
+    }
+
+    /** A tool called with a JSON body — what a write wants, so that a
+     *  merchant with an ampersand in its name is not a query-string
+     *  problem. */
+    private fun post(path: String, args: Map<String, String>): String {
+        val body = buildString {
+            append('{')
+            args.entries.forEachIndexed { i, (k, v) ->
+                if (i > 0) append(',')
+                append(json.encodeToString(String.serializer(), k)); append(':')
+                // Numbers and booleans go bare; the server takes both.
+                if (v == "true" || v == "false" || v.toIntOrNull() != null) append(v)
+                else append(json.encodeToString(String.serializer(), v))
+            }
+            append('}')
+        }.toRequestBody("application/json".toMediaType())
+        val req = Request.Builder().url("$baseUrl$path")
+            .header("Authorization", "Bearer ${token.orEmpty()}")
+            .header("Accept", "application/json")
+            .post(body).build()
+        client.newCall(req).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) {
+                val why = runCatching {
+                    json.parseToJsonElement(text).let { (it as? JsonObject)?.get("error")?.toString()?.trim('"') }
+                }.getOrNull()
+                throw Failure(resp.code, why ?: "The dashboard answered ${resp.code}.")
+            }
+            return text
         }
     }
 
@@ -122,6 +155,54 @@ class Api(private val baseUrl: String, private val token: String?) {
                 throw Failure(resp.code, reply.error ?: "The dashboard answered ${resp.code}.")
             }
             return reply
+        }
+    }
+
+    /** The queue of rows with no category, biggest first. */
+    fun uncategorised(limit: Int = 60): Queue {
+        val text = get("/api/v1/tools/uncategorised", mapOf("limit" to limit.toString()))
+        val reply = json.decodeFromString(ToolReply.serializer(Queue.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+    }
+
+    /** Every category, for the sheet of choices. The tool answers with
+     *  a bare list. */
+    fun categories(): List<Category> {
+        val text = get("/api/v1/tools/categories")
+        val reply = json.decodeFromString(
+            ToolReply.serializer(ListSerializer(Category.serializer())), text)
+        return reply.result ?: emptyList()
+    }
+
+    /** The spending nobody has claimed yet. */
+    fun unowned(limit: Int = 60): Unowned {
+        val text = get("/api/v1/tools/unowned_spending", mapOf("limit" to limit.toString()))
+        val reply = json.decodeFromString(ToolReply.serializer(Unowned.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+    }
+
+    /** The household, for "whose spending is this". */
+    fun people(): List<Person> {
+        val text = get("/api/v1/tools/people")
+        val reply = json.decodeFromString(ToolReply.serializer(PeopleList.serializer()), text)
+        return reply.result?.people ?: emptyList()
+    }
+
+    /** One decision. The dashboard files the row and, where the verdict
+     *  says so, remembers it as a rule for the next one like it. */
+    fun send(verdict: Verdict) {
+        verdict.category?.let { category ->
+            val args = buildMap {
+                put("txn_id", verdict.txnId.toString())
+                put("category", category)
+                put("remember", verdict.remember.toString())
+                verdict.pattern?.takeIf { it.isNotBlank() }?.let { put("pattern", it) }
+            }
+            post("/api/v1/tools/set_category", args)
+        }
+        verdict.owner?.let { owner ->
+            post("/api/v1/tools/set_owner", mapOf(
+                "txn_id" to verdict.txnId.toString(), "owner" to owner, "remember" to "true"))
         }
     }
 

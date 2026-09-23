@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import kotlinx.serialization.builtins.ListSerializer
 
 /**
  * Where the token and the last figures live: an encrypted preference
@@ -64,6 +65,26 @@ class Store(context: Context) {
         val at = prefs.getLong("snapshot_at", 0L)
         return runCatching { Api.json.decodeFromString(Snapshot.serializer(), raw) to at }.getOrNull()
     }
+
+    /**
+     * The decisions taken on the phone that the dashboard has not
+     * heard yet. A triage on a train is the point of doing it on a
+     * phone, so a verdict is kept here first and sent when there is a
+     * network — in the order it was taken, because two verdicts on the
+     * same row must land the way the thumb meant them.
+     */
+    fun pending(): List<Verdict> {
+        val raw = prefs.getString("pending", null) ?: return emptyList()
+        return runCatching {
+            Api.json.decodeFromString(ListSerializer(Verdict.serializer()), raw)
+        }.getOrDefault(emptyList())
+    }
+
+    fun queue(verdict: Verdict) = savePending(pending() + verdict)
+
+    fun savePending(list: List<Verdict>) = prefs.edit()
+        .putString("pending", Api.json.encodeToString(ListSerializer(Verdict.serializer()), list))
+        .apply()
 
     fun api(): Api = Api(baseUrl.orEmpty(), token)
 }

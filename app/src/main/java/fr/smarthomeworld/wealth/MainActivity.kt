@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -59,13 +60,14 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-private enum class Tab { Overview, Accounts, Transactions, Settings }
+private enum class Tab { Overview, Accounts, Triage, Transactions, Settings }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val txns by vm.txns.collectAsStateWithLifecycle()
+    val triage by vm.triage.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.Overview) }
     var account by remember { mutableStateOf<Account?>(null) }
 
@@ -85,6 +87,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit) {
                     val heading = when (tab) {
                         Tab.Overview -> "Overview"
                         Tab.Accounts -> "Accounts"
+                        Tab.Triage -> "Triage"
                         Tab.Transactions -> "Transactions"
                         Tab.Settings -> "Settings"
                     }
@@ -108,6 +111,16 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit) {
                     onClick = { tab = Tab.Accounts; account = null },
                     icon = { Icon(Icons.Default.AccountBalance, null) }, label = { Text("Accounts") })
                 NavigationBarItem(
+                    selected = tab == Tab.Triage,
+                    onClick = { tab = Tab.Triage; account = null; vm.loadTriage(owning = false) },
+                    icon = {
+                        val queue = (state.snapshot?.waiting?.uncategorised ?: 0) + triage.waiting
+                        BadgedBox(badge = { if (queue > 0) Badge { Text(queue.coerceAtMost(99).toString()) } }) {
+                            Icon(Icons.Default.Style, null)
+                        }
+                    },
+                    label = { Text("Triage") })
+                NavigationBarItem(
                     selected = tab == Tab.Transactions,
                     onClick = { tab = Tab.Transactions; account = null; vm.loadTransactions() },
                     icon = { Icon(Icons.Default.SwapVert, null) }, label = { Text("Rows") })
@@ -126,6 +139,29 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit) {
                 }
                 tab == Tab.Transactions -> TransactionsScreen(txns, "everything") { q ->
                     vm.loadTransactions(null, q)
+                }
+                tab == Tab.Triage -> Column(Modifier.fillMaxSize()) {
+                    // Two queues, one screen: what has no category, and
+                    // what nobody has claimed. The dashboard counts both.
+                    val unowned = snap?.waiting?.unassignedSpending ?: 0
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        SegmentedButton(
+                            selected = !triage.owning, onClick = { vm.loadTriage(owning = false) },
+                            shape = SegmentedButtonDefaults.itemShape(0, 2),
+                        ) { Text("Category") }
+                        SegmentedButton(
+                            selected = triage.owning, onClick = { vm.loadTriage(owning = true) },
+                            shape = SegmentedButtonDefaults.itemShape(1, 2),
+                        ) { Text(if (unowned > 0) "Whose ($unowned)" else "Whose") }
+                    }
+                    TriageScreen(
+                        owning = triage.owning, rows = triage.rows, remaining = triage.remaining,
+                        categories = triage.categories, people = triage.people,
+                        waiting = triage.waiting, loading = triage.loading, error = triage.error,
+                        onDecide = { row, category, owner -> vm.decide(row, category, owner) },
+                        onUndo = { vm.undoLast() },
+                        onRefresh = { vm.loadTriage(triage.owning) },
+                    )
                 }
                 tab == Tab.Settings -> SettingsScreen(
                     server = state.serverName,
