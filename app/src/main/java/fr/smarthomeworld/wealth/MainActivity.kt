@@ -35,10 +35,12 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // The home-screen shortcut asks for the triage straight away.
+        val start = if (intent?.action == TRIAGE_ACTION) Tab.Triage else Tab.Overview
         setContent {
             WealthTheme {
                 val vm: MainViewModel = viewModel()
-                App(vm, ::askFingerprint)
+                App(vm, ::askFingerprint, start)
             }
         }
     }
@@ -66,13 +68,18 @@ class MainActivity : FragmentActivity() {
 
 private enum class Tab { Overview, Accounts, Triage, Transactions, Settings }
 
+/** What the shortcut sends; an explicit component, so no filter is
+ *  needed for it. */
+const val TRIAGE_ACTION = "fr.smarthomeworld.wealth.action.TRIAGE"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit) {
+private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Tab.Overview) {
     val state by vm.state.collectAsStateWithLifecycle()
     val txns by vm.txns.collectAsStateWithLifecycle()
     val triage by vm.triage.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableStateOf(Tab.Overview) }
+    var tab by rememberSaveable { mutableStateOf(start) }
+    LaunchedEffect(start) { if (start == Tab.Triage) vm.loadTriage(owning = false) }
     var account by remember { mutableStateOf<Account?>(null) }
 
     if (!state.paired) {

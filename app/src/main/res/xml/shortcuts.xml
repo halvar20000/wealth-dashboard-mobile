@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the icon. Triage is the one thing worth two taps fewer:
+     it is done standing up, several times a week. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="triage"
+        android:enabled="true"
+        android:icon="@drawable/ic_notification"
+        android:shortcutShortLabel="@string/shortcut_triage"
+        android:shortcutLongLabel="@string/shortcut_triage_long">
+        <intent
+            android:action="fr.smarthomeworld.wealth.action.TRIAGE"
+            android:targetPackage="fr.smarthomeworld.wealth"
+            android:targetClass="fr.smarthomeworld.wealth.MainActivity" />
+    </shortcut>
+</shortcuts>
