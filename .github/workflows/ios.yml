@@ -171,6 +171,30 @@ jobs:
       # When a target's profile is made during the archive itself (a new
       # extension, a renewed profile), xcodebuild can look for the file
       # before it is on disk. The second try finds it, so there is one.
+      # On a fresh runner the archive has to fetch a profile for every
+      # target at once, and v1.2.2 showed it can plan with the share
+      # extension's profile and never write the file (twice, each time a
+      # new one). Building each extension alone first fetches its profile
+      # by itself; the archive then finds them all on disk.
+      - name: Fetch the signing profiles
+        if: steps.key.outputs.found == 'yes'
+        working-directory: ios
+        run: |
+          for target in WealthShare WealthWidget; do
+            xcodebuild build \
+              -project Wealth.xcodeproj -target "$target" -configuration Release \
+              -sdk iphoneos \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "$KEY_PATH" \
+              -authenticationKeyID "$ASC_KEY_ID" \
+              -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+              DEVELOPMENT_TEAM="$TEAM_ID" \
+              SYMROOT="$RUNNER_TEMP/prep" OBJROOT="$RUNNER_TEMP/prep" \
+              -quiet \
+              || echo "::warning::Building $target alone failed; the archive will say why."
+          done
+          ls -l "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" || true
+
       - name: Archive
         if: steps.key.outputs.found == 'yes'
         working-directory: ios
