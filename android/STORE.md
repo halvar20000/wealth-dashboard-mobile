@@ -86,6 +86,19 @@ change it there, copy it across.
 
 Everyone. No ads, no user-generated content, no purchases, no location.
 
+## When an upload goes wrong
+
+Play **consumes a versionCode the moment a bundle reaches it**, even if
+the release you were creating then failed, was discarded, or never got
+past the draft. Uploading the same file again is refused with "version
+code N has already been used", and there is no way to free the number.
+
+The fix is not to rebuild: in the release form, next to *Upload*, use
+**Add from library** and pick the bundle that did arrive. **App bundle
+explorer** under *Test and release* says whether it is there. Only if
+it truly never arrived is a new tag — and with it a new versionCode —
+the answer.
+
 ## Before the first upload — **you**
 
 1. **A keystore.** `keytool -genkeypair -v -keystore wealth.jks
