@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fr.smarthomeworld.wealth.data.ClassValue
 import fr.smarthomeworld.wealth.data.Period
 import fr.smarthomeworld.wealth.data.Snapshot
 
@@ -44,8 +45,17 @@ fun OverviewScreen(
     onTransactions: () -> Unit,
 ) {
     val ccy = snapshot.baseCurrency
-    val left = snapshot.netWorth.byClass.filter { it.name !in excluded }
-    val dropped = snapshot.netWorth.byClass.filter { it.name in excluded }
+    // `by_class` carries what is owned and nothing that is owed: the
+    // dashboard draws it as a ring, and a ring has no negative slice.
+    // The net worth it reports does subtract the debt, so a sum of the
+    // classes alone is too high by every mortgage in the house — which
+    // is why the debt is put back here, as a line of its own that can
+    // be unticked like the others.
+    val debt = snapshot.netWorth.debt ?: 0.0
+    val classes = snapshot.netWorth.byClass +
+        (if (debt > 0.0) listOf(ClassValue("Schulden", -debt)) else emptyList())
+    val left = classes.filter { it.name !in excluded }
+    val dropped = classes.filter { it.name in excluded }
     // With nothing unticked the dashboard's own figure is shown, not a
     // sum of the classes: the two can differ by a rounding, and the
     // number on the phone must match the number in the browser.
@@ -123,7 +133,7 @@ fun OverviewScreen(
             }
         }
 
-        if (snapshot.netWorth.byClass.isNotEmpty()) {
+        if (classes.isNotEmpty()) {
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween) {
@@ -135,7 +145,7 @@ fun OverviewScreen(
                     }
                 }
             }
-            items(snapshot.netWorth.byClass) { c ->
+            items(classes) { c ->
                 Row(
                     Modifier.fillMaxWidth().clickable { onToggleClass(c.name) },
                     verticalAlignment = Alignment.CenterVertically,
@@ -146,8 +156,11 @@ fun OverviewScreen(
                                 else MaterialTheme.colorScheme.onSurface)
                     Text(Fmt.money(c.value, ccy), style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (c.name in excluded) MaterialTheme.colorScheme.onSurfaceVariant
-                                else MaterialTheme.colorScheme.onSurface)
+                        color = when {
+                            c.name in excluded -> MaterialTheme.colorScheme.onSurfaceVariant
+                            c.value < 0 -> Loss
+                            else -> MaterialTheme.colorScheme.onSurface
+                        })
                 }
             }
         }
