@@ -69,10 +69,12 @@ class Repo(private val store: Store) {
     }
 
     /** Quotes and rates, then a fresh snapshot kept in the cache — the
-     *  figures on every screen move together or not at all. */
-    suspend fun refreshMarket(): Loaded = withContext(Dispatchers.IO) {
-        store.api().refreshMarket()
-        refresh()
+     *  figures on every screen move together or not at all. Both
+     *  answers come back, because what a provider refused to quote is
+     *  worth saying and only the first one knows it. */
+    suspend fun refreshMarket(): Pair<Market, Loaded> = withContext(Dispatchers.IO) {
+        val market = store.api().refreshMarket()
+        market to refresh()
     }
 
     // ── The triage ───────────────────────────────────────────────

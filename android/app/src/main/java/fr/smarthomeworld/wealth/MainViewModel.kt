@@ -215,10 +215,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(pricing = true, error = null)
         viewModelScope.launch {
             runCatching { repo.refreshMarket() }
-                .onSuccess {
+                .onSuccess { (market, loaded) ->
+                    // A provider refusing one quote is not a failed
+                    // refresh: the other prices arrived. Say which ones
+                    // are stale and why, and keep the figures that came.
+                    val misses = market.prices.failed
+                    val head = misses.take(2).joinToString("; ") {
+                        it.isin + (it.error?.let { e -> ": $e" } ?: "")
+                    }
+                    val note = listOfNotNull(
+                        head.ifBlank { null }?.let {
+                            if (misses.size > 2) "$it — und ${misses.size - 2} weitere" else it
+                        },
+                        market.rates?.error?.let { "Wechselkurse: $it" },
+                    ).joinToString(" · ").ifBlank { null }
                     _state.value = _state.value.copy(
-                        pricing = false, snapshot = it.snapshot, at = it.at,
-                        stale = false, error = null)
+                        pricing = false, snapshot = loaded.snapshot, at = loaded.at,
+                        stale = false, error = note)
                     refreshWidgets(getApplication<Application>())
                 }
                 .onFailure { e ->
