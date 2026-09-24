@@ -312,3 +312,72 @@ data class Returns(
     @SerialName("1y") val year: Period? = null,
     val holdings: Map<String, Period> = emptyMap(),
 )
+
+// ─── Cash flow ───────────────────────────────────────────────────
+//
+// What came in and what went out, per calendar month. The dashboard
+// does the arithmetic — every currency at the rate of its month — so
+// the app only draws it.
+
+@Serializable
+data class MonthFlow(
+    val month: String = "",
+    val income: Double = 0.0,
+    val spending: Double = 0.0,
+    val investment: Double = 0.0,
+    val net: Double = 0.0,
+    val categories: Map<String, Double> = emptyMap(),
+)
+
+@Serializable
+data class CategoryFlow(
+    val category: String = "",
+    val label: String = "",
+    val colour: String? = null,
+    val total: Double = 0.0,
+    @SerialName("per_month") val perMonth: Double = 0.0,
+)
+
+@Serializable
+data class Cashflow(
+    val months: List<MonthFlow> = emptyList(),
+    @SerialName("by_category") val byCategory: List<CategoryFlow> = emptyList(),
+    @SerialName("income_by_category") val incomeByCategory: List<CategoryFlow> = emptyList(),
+    @SerialName("total_income") val totalIncome: Double = 0.0,
+    @SerialName("total_spending") val totalSpending: Double = 0.0,
+    @SerialName("total_investment") val totalInvestment: Double = 0.0,
+    @SerialName("average_spending") val averageSpending: Double = 0.0,
+    @SerialName("average_income") val averageIncome: Double = 0.0,
+    @SerialName("months_covered") val monthsCovered: Int = 0,
+    @SerialName("base_currency") val baseCurrency: String = "EUR",
+    val unconverted: List<Unconverted> = emptyList(),
+) {
+    /** What is left over in an average month — the figure the page is
+     *  really about. */
+    val averageNet: Double get() = averageIncome - averageSpending
+}
+
+@Serializable
+data class Unconverted(val currency: String = "", val amount: Double = 0.0)
+
+/** The cheap refresh: quotes and rates, no bank touched. */
+@Serializable
+data class Market(
+    val prices: PriceReport = PriceReport(),
+    val rates: RateReport? = null,
+    @SerialName("net_worth") val netWorth: NetWorth = NetWorth(),
+)
+
+@Serializable
+data class PriceReport(
+    val priced: Int = 0,
+    val failed: Int = 0,
+    @SerialName("as_of") val asOf: String? = null,
+)
+
+@Serializable
+data class RateReport(
+    val latest: String? = null,
+    val currencies: Int = 0,
+    val error: String? = null,
+)

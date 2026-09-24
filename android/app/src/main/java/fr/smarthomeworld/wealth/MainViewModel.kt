@@ -8,6 +8,7 @@ import fr.smarthomeworld.wealth.data.Repo
 import fr.smarthomeworld.wealth.data.Snapshot
 import fr.smarthomeworld.wealth.data.Store
 import fr.smarthomeworld.wealth.data.Allocation
+import fr.smarthomeworld.wealth.data.Cashflow
 import fr.smarthomeworld.wealth.data.Category
 import fr.smarthomeworld.wealth.data.History
 import fr.smarthomeworld.wealth.data.Holding
@@ -23,6 +24,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/** What the cash-flow page holds. */
+data class CashflowState(
+    val loading: Boolean = false,
+    val months: Int = 13,
+    val flow: Cashflow? = null,
+    val error: String? = null,
+)
+
 data class UiState(
     val paired: Boolean = false,
     val locked: Boolean = false,
@@ -33,6 +42,11 @@ data class UiState(
     val error: String? = null,
     val pairing: Boolean = false,
     val serverName: String? = null,
+    /** Asset classes the user has unticked — the figure at the top is
+     *  the net worth less these. Empty means everything counts. */
+    val excluded: Set<String> = emptySet(),
+    /** Set while the cheap refresh runs, so the button can say so. */
+    val pricing: Boolean = false,
 )
 
 data class TriageState(
@@ -73,6 +87,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _txns = MutableStateFlow<TransactionPage?>(null)
     val txns: StateFlow<TransactionPage?> = _txns.asStateFlow()
 
+    private val _cashflow = MutableStateFlow(CashflowState())
+    val cashflow: StateFlow<CashflowState> = _cashflow.asStateFlow()
+
     private val _portfolio = MutableStateFlow(PortfolioState())
     val portfolio: StateFlow<PortfolioState> = _portfolio.asStateFlow()
 
@@ -91,6 +108,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             at = cached?.at ?: 0L,
             stale = cached != null,
             serverName = store.serverName,
+            excluded = store.excludedClasses,
         )
         if (store.paired) { refresh(); loadHistory() }
         // A round that was switched on survives a reboot and an update;
@@ -162,6 +180,56 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = UiState()
     }
 
+    // ── Cash flow ────────────────────────────────────────────────
+
+    fun loadCashflow(months: Int = _cashflow.value.months) {
+        if (!store.paired) return
+        _cashflow.value = _cashflow.value.copy(loading = true, months = months, error = null)
+        viewModelScope.launch {
+            runCatching { repo.cashflow(months) }
+                .onSuccess { _cashflow.value = CashflowState(loading = false, months = months, flow = it) }
+                .onFailure { e ->
+                    _cashflow.value = _cashflow.value.copy(
+                        loading = false,
+                        error = (e as? Api.Failure)?.message ?: e.message
+                            ?: "Der Cashflow kam nicht an.")
+                }
+        }
+    }
+
+    // ── What counts towards the figure at the top ────────────────
+
+    /** Tick or untick one asset class. Nothing is fetched: the snapshot
+     *  already carries every class, so the sum is the phone's to make. */
+    fun toggleClass(name: String) {
+        val next = _state.value.excluded.toMutableSet()
+        if (!next.remove(name)) next.add(name)
+        store.excludedClasses = next
+        _state.value = _state.value.copy(excluded = next)
+    }
+
+    /** Quotes and rates, no bank touched — the refresh somebody presses
+     *  to see whether the markets moved. */
+    fun refreshMarket() {
+        if (!store.paired) return
+        _state.value = _state.value.copy(pricing = true, error = null)
+        viewModelScope.launch {
+            runCatching { repo.refreshMarket() }
+                .onSuccess {
+                    _state.value = _state.value.copy(
+                        pricing = false, snapshot = it.snapshot, at = it.at,
+                        stale = false, error = null)
+                    refreshWidgets(getApplication<Application>())
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(
+                        pricing = false,
+                        error = (e as? Api.Failure)?.message ?: e.message
+                            ?: "Die Kurse kamen nicht an.")
+                }
+        }
+    }
+
     // ── The portfolio ────────────────────────────────────────────
 
     /** The whole page. Called when the tab is opened, and again by the
@@ -230,12 +298,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** A verdict: written down at once, sent when the network allows.
      *  The card moves on either way — that is the whole point. */
-    fun decide(row: Waiting1, category: String?, owner: String?) {
+    fun decide(row: Waiting1, category: String?, owner: String?,
+               pattern: String? = row.pattern, remember: Boolean = true) {
         _triage.value = _triage.value.copy(waiting = _triage.value.waiting + 1, done = _triage.value.done + 1)
         viewModelScope.launch {
             val left = runCatching {
                 repo.decide(Verdict(txnId = row.id, category = category,
-                                    pattern = row.pattern, remember = true, owner = owner))
+                                    pattern = pattern, remember = remember, owner = owner))
             }.getOrElse { repo.waiting() }
             _triage.value = _triage.value.copy(waiting = left)
         }

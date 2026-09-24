@@ -188,6 +188,21 @@ class Api(private val baseUrl: String, private val token: String?) {
         return reply.result ?: Returns()
     }
 
+    /** Income and spending per month, the dashboard's own arithmetic. */
+    fun cashflow(months: Int = 13): Cashflow {
+        val text = get("/api/v1/tools/cashflow", mapOf("months" to months.toString()))
+        val reply = json.decodeFromString(ToolReply.serializer(Cashflow.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+    }
+
+    /** Quote every holding again and refetch the rates — no bank is
+     *  touched, which is why this is the one a phone may press often. */
+    fun refreshMarket(): Market {
+        val text = post("/api/v1/tools/refresh_market", emptyMap())
+        val reply = json.decodeFromString(ToolReply.serializer(Market.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+    }
+
     /** The queue of rows with no category, biggest first. */
     fun uncategorised(limit: Int = 60): Queue {
         val text = get("/api/v1/tools/uncategorised", mapOf("limit" to limit.toString()))
@@ -231,8 +246,11 @@ class Api(private val baseUrl: String, private val token: String?) {
             post("/api/v1/tools/set_category", args)
         }
         verdict.owner?.let { owner ->
+            // The same switch as the category: "this row only" must mean
+            // this row only, whichever queue the thumb was in.
             post("/api/v1/tools/set_owner", mapOf(
-                "txn_id" to verdict.txnId.toString(), "owner" to owner, "remember" to "true"))
+                "txn_id" to verdict.txnId.toString(), "owner" to owner,
+                "remember" to verdict.remember.toString()))
         }
     }
 

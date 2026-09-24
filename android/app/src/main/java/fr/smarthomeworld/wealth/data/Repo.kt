@@ -62,6 +62,19 @@ class Repo(private val store: Store) {
         store.api().history(period)
     }
 
+    // ── Cash flow, and the cheap refresh ─────────────────────────
+
+    suspend fun cashflow(months: Int = 13): Cashflow = withContext(Dispatchers.IO) {
+        store.api().cashflow(months)
+    }
+
+    /** Quotes and rates, then a fresh snapshot kept in the cache — the
+     *  figures on every screen move together or not at all. */
+    suspend fun refreshMarket(): Loaded = withContext(Dispatchers.IO) {
+        store.api().refreshMarket()
+        refresh()
+    }
+
     // ── The triage ───────────────────────────────────────────────
     //
     // Two queues, one shape: a row waiting for a category, and a row

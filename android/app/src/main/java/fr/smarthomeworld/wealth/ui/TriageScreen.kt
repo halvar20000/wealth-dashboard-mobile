@@ -1,5 +1,6 @@
 package fr.smarthomeworld.wealth.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,7 +51,7 @@ fun TriageScreen(
     waiting: Int,
     loading: Boolean,
     error: String?,
-    onDecide: (Waiting1, String?, String?) -> Unit,   // row, category, owner
+    onDecide: (Waiting1, String?, String?, String?, Boolean) -> Unit,  // row, category, owner, pattern, remember
     onUndo: () -> Unit,
     onRefresh: () -> Unit,
 ) {
@@ -89,8 +90,9 @@ fun TriageScreen(
                     guessLabel = categories.firstOrNull { it.slug == row.suggestion }?.label,
                     onRight = {
                         val guess = row.suggestion
-                        if (!owning && guess != null) { onDecide(row, guess, null); index++ }
-                        else sheetFor = row
+                        if (!owning && guess != null) {
+                            onDecide(row, guess, null, row.pattern, true); index++
+                        } else sheetFor = row
                     },
                     onLeft = { index++ },
                     onTap = { sheetFor = row },
@@ -113,16 +115,59 @@ fun TriageScreen(
 
     sheetFor?.let { pick ->
         ModalBottomSheet(onDismissRequest = { sheetFor = null }) {
+            // The rule is decided here, above the choice, because the
+            // words a rule remembers are what makes it right or wrong
+            // for the next hundred rows — and they were only ever
+            // shown, never editable.
+            var pattern by remember(pick.id) { mutableStateOf(pick.pattern.orEmpty()) }
+            var makeRule by remember(pick.id) { mutableStateOf(true) }
+            RuleEditor(pattern, makeRule, { pattern = it }, { makeRule = it })
             if (owning) {
                 PeopleSheet(people) { owner ->
-                    onDecide(pick, null, owner); sheetFor = null; index++
+                    onDecide(pick, null, owner, pattern.trim().ifBlank { null }, makeRule)
+                    sheetFor = null; index++
                 }
             } else {
                 CategorySheet(categories, pick.suggestion) { slug ->
-                    onDecide(pick, slug, null); sheetFor = null; index++
+                    onDecide(pick, slug, null, pattern.trim().ifBlank { null }, makeRule)
+                    sheetFor = null; index++
                 }
             }
         }
+    }
+}
+
+/** What the rule will remember, before it is made. Off means this one
+ *  row only — the correction that must not become a habit. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RuleEditor(
+    pattern: String,
+    enabled: Boolean,
+    onPattern: (String) -> Unit,
+    onRemember: (Boolean) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Als Regel merken", style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = enabled, onCheckedChange = onRemember)
+        }
+        AnimatedVisibility(enabled) {
+            OutlinedTextField(
+                value = pattern,
+                onValueChange = onPattern,
+                label = { Text("Regel merkt sich") },
+                supportingText = {
+                    Text("Der Text, an dem die nächste Buchung erkannt wird — " +
+                         "kürzer ist meist besser: „Tenmanya\u201C statt der ganzen Zeile.")
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        HorizontalDivider()
     }
 }
 
