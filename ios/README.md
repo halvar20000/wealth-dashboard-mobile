@@ -1,9 +1,11 @@
 # Wealth Dashboard — the iOS app
 
-Here so far: pairing, the overview (with the classes that count, eight
-return windows and the quotes-only refresh), accounts and their rows,
-cash flow, transactions with search. The rest is issue #1 and its
-sub-issues.
+Everything on the parity list: pairing, the overview (with the classes
+that count, eight return windows and the quotes-only refresh), the
+portfolio with its chart and ring, accounts and their rows, the swipe
+triage for categories and for whose spending, cash flow, transactions
+with search, the Home-screen widget, the share extension, the
+background round with its notices, the quick action and the unlock.
 
 Read [CONTRACT.md](../CONTRACT.md) first: it is what the dashboard
 answers and the rules both apps keep. Then [PARITY.md](../PARITY.md)
@@ -31,19 +33,32 @@ similar. What it does, and the nearest platform equivalent:
 ## Opening it
 
 `ios/Wealth.xcodeproj`, Xcode 16 or newer, iOS 17 and up. No packages,
-no CocoaPods. The folders `Wealth/` and `WealthTests/` are synchronised
-groups: a file dropped into them is in the target, with no project edit.
+no CocoaPods. Every folder is a synchronised group: a file dropped into
+one is in its target, with no project edit. `Shared/` belongs to the
+app, the widget and the share extension alike.
 
-To run it on a phone, pick your team under **Signing & Capabilities**.
-The bundle id is `com.herbrig.wealthdashboard`, the same as on Play.
+To run it on a phone, pick your team under **Signing & Capabilities**
+for all three targets. The bundle ids are `com.herbrig.wealthdashboard`
+and, for the extensions, `….widget` and `….share`.
 
 ```
+Shared/        Api (the HTTP surface), Models, Store (Keychain + cache), Format
 Wealth/
-  Data/   Api (the HTTP surface), Models, Store (Keychain + cache), AppModel
-  UI/     one view per screen, Format (money, days, gain/loss colours)
+  Data/        AppModel (the order of things), Round (the background round)
+  UI/          one view per screen, Charts (a line and a ring, by hand)
+WealthWidget/  the net worth on the Home screen, drawn from the cache
+WealthShare/   a statement from the share sheet into an account
 WealthTests/   the contract where it can be checked without a dashboard
-Info.plist     only what build settings cannot say: local http, no export question
+Info.plist     only what build settings cannot say: local http, Face ID,
+               the quick action, the background round, no export question
+Wealth.entitlements   one Keychain group for all three targets
 ```
+
+The widget and the share extension read the app's Keychain through one
+shared access group (`Wealth.entitlements`). That is Keychain sharing,
+not an App Group, so nothing has to be registered in the developer
+portal: the extensions' bundle ids are created by Xcode's cloud signing
+on the first archive, like the app's was.
 
 ## CI and TestFlight
 

@@ -26,6 +26,31 @@ enum Fmt {
         return f.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
+    /// A unit price: always with its decimals, whatever its size — a
+    /// share at 1 234,56 € is not "1 235 €".
+    static func price(_ value: Double?, _ currency: String?, locale: Locale = .current) -> String {
+        guard let value else { return "—" }
+        let f = NumberFormatter()
+        f.locale = locale
+        f.numberStyle = .currency
+        f.currencyCode = (currency ?? "EUR").uppercased()
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = abs(value) < 10 ? 4 : 2
+        return f.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    /// A number of shares: whole where it is whole, up to four places
+    /// where a savings plan has made it fractional.
+    static func quantity(_ value: Double?, locale: Locale = .current) -> String {
+        guard let value else { return "—" }
+        let f = NumberFormatter()
+        f.locale = locale
+        f.numberStyle = .decimal
+        f.minimumFractionDigits = 0
+        f.maximumFractionDigits = 4
+        return f.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
     static func signedMoney(_ value: Double?, _ currency: String?, locale: Locale = .current) -> String {
         guard let value else { return "—" }
         return (value >= 0 ? "+" : "−") + money(abs(value), currency, locale: locale)
@@ -69,5 +94,17 @@ enum Fmt {
             return f.localizedString(for: date, relativeTo: now)
         }
         return date.formatted(date: .abbreviated, time: .omitted)
+    }
+}
+
+extension Color {
+    /// "#7c3aed" as the dashboard writes it; anything else is nil.
+    init?(hex: String?) {
+        guard var s = hex?.trimmingCharacters(in: .whitespaces) else { return nil }
+        if s.hasPrefix("#") { s.removeFirst() }
+        guard s.count == 6, let v = UInt32(s, radix: 16) else { return nil }
+        self.init(red: Double((v >> 16) & 0xFF) / 255,
+                  green: Double((v >> 8) & 0xFF) / 255,
+                  blue: Double(v & 0xFF) / 255)
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import WidgetKit
 
 /// One place that knows the order of things: read the cache first so a
 /// cold start shows figures, then ask the dashboard, then keep what came
@@ -24,14 +25,24 @@ final class AppModel {
     /// Asset classes the viewer has unticked; the figure leaves them out.
     private(set) var excluded: Set<String>
     private(set) var serverVersion: String?
+    /// Verdicts taken on this phone that the dashboard has not heard.
+    private(set) var waiting = 0
+    /// Whether the figures hide behind the device's own lock.
+    private(set) var lockEnabled: Bool
+    /// True while the lock is up.
+    var locked: Bool
     var error: String?
 
     init(store: Store = Store()) {
         self.store = store
+        store.moveToSharedKeychain()
         paired = store.paired
         serverName = store.serverName
         serverVersion = store.serverVersion
         excluded = store.excludedClasses
+        waiting = store.pending().count
+        lockEnabled = store.lockEnabled
+        locked = store.paired && store.lockEnabled
         if let cached = store.cached() {
             snapshot = cached.snapshot
             readAt = cached.at
@@ -73,6 +84,9 @@ final class AppModel {
             let fresh = try await store.api().snapshot()
             let now = Date()
             store.cache(fresh, at: now)
+            // The Home screen draws the same cache; redraw it now, so the
+            // two never disagree about today's figure.
+            WidgetCenter.shared.reloadAllTimelines()
             snapshot = fresh
             readAt = now
             if let version = fresh.server?.version, version != serverVersion {
@@ -126,8 +140,126 @@ final class AppModel {
         try await store.api().transactions(accountId: accountId, query: query)
     }
 
+    // MARK: The portfolio
+
+    func holdings() async throws -> Holdings { try await store.api().holdings() }
+    func history(period: String) async throws -> History { try await store.api().history(period: period) }
+    /// The ring and the returns are extras: a dashboard that cannot give
+    /// them still shows the holdings.
+    func allocation() async -> Allocation? { try? await store.api().allocation() }
+    func returns() async -> Returns? { try? await store.api().returns() }
+
+    // MARK: The triage
+
+    struct Triage {
+        var rows: [QueueRow] = []
+        var remaining = 0
+        var categories: [Category] = []
+        var people: [Person] = []
+    }
+
+    /// One of the two queues. What was decided and not yet sent goes out
+    /// first, so the queue does not hand back a row that was dealt with
+    /// on the train.
+    func triage(owning: Bool) async throws -> Triage {
+        await flush()
+        let api = store.api()
+        if owning {
+            async let queue = api.unowned()
+            async let people = api.people()
+            let (q, who) = try await (queue, people)
+            return Triage(rows: q.transactions ?? [], remaining: q.remaining ?? 0, people: who)
+        } else {
+            async let queue = api.uncategorised()
+            async let categories = api.categories()
+            let (q, choices) = try await (queue, categories)
+            return Triage(rows: q.transactions ?? [], remaining: q.remaining ?? 0, categories: choices)
+        }
+    }
+
+    /// A verdict: written down at once, sent when the network allows
+    /// (contract rule 2). The card moves on either way.
+    func decide(_ verdict: Verdict) {
+        store.queue(verdict)
+        waiting = store.pending().count
+        Task { await flush() }
+    }
+
+    private var flushing = false
+
+    /// Send what is waiting, oldest first; stop at the first failure that
+    /// is not the dashboard's refusal and keep the rest.
+    func flush() async {
+        guard paired, !flushing else { return }
+        flushing = true
+        defer { flushing = false; waiting = store.pending().count }
+        await Self.flush(store)
+    }
+
+    /// The same round, for the app and for the background: oldest first,
+    /// and a failure that is not the dashboard's refusal stops it.
+    nonisolated static func flush(_ store: Store) async {
+        let api = store.api()
+        while let next = store.pending().first {
+            do {
+                try await api.deliver(next)
+            } catch let failure as Api.Failure where (400..<500).contains(failure.status) && failure.status != 401 {
+                // A category that no longer exists, a row somebody
+                // deleted: dropping it is right, retrying forever would
+                // block the queue. A 401 is not about the verdict.
+            } catch {
+                return
+            }
+            // Only this one: another may have been queued meanwhile.
+            var left = store.pending()
+            if left.first == next { left.removeFirst() }
+            store.savePending(left)
+        }
+    }
+
+    /// Take the last verdict back while it is still on the phone. Once
+    /// the dashboard has it, the place to change it is the dashboard.
+    /// Returns whether there was one to take back.
+    @discardableResult
+    func undoLast() -> Bool {
+        var left = store.pending()
+        guard !left.isEmpty else { return false }
+        left.removeLast()
+        store.savePending(left)
+        waiting = left.count
+        return true
+    }
+
+    // MARK: The background round
+
+    var watchEnabled: Bool { store.watch }
+
+    func setWatch(_ on: Bool) {
+        store.watch = on
+        if !on { store.lastNotice = nil }
+        Round.schedule(on && paired)
+    }
+
+    // MARK: The lock
+
+    func setLock(_ on: Bool) {
+        store.lockEnabled = on
+        lockEnabled = on
+    }
+
+    /// Called when the app goes to the background: the next person to
+    /// pick up the phone meets the lock.
+    func lockIfEnabled() {
+        if paired && lockEnabled { locked = true }
+    }
+
     func forget() {
         store.forget()
+        Round.schedule(false)
+        WidgetCenter.shared.reloadAllTimelines()
+        waiting = 0
+        lockEnabled = false
+        locked = false
         paired = false
         serverName = nil
         serverVersion = nil

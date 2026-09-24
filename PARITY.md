@@ -14,27 +14,27 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 
 | # | Feature | Android | iOS | Notes |
 |---|---|---|---|---|
-| 1 | Pairing with a six-digit code | ✅ 0.1.0 | 🚧 | `POST /api/v1/pair`; token to the encrypted store |
-| 2 | Overview: net worth, its parts, return per period | ✅ 0.1.0 | 🚧 | one `snapshot` call |
-| 3 | Net-worth line chart, six windows | ✅ 1.1.0 | — | `net_worth_history`, drawn by hand (Canvas / SwiftUI Path) |
-| 3a | Net worth without chosen asset classes | ✅ 1.2.0 | 🚧 | tick boxes over `by_class`, kept on the phone |
-| 3b | Performance: all eight windows without scrolling | ✅ 1.2.0 | 🚧 | two rows of four |
-| 3c | Refresh quotes and FX without a bank sync | ✅ 1.2.0 | 🚧 | `refresh_market`, dashboard ≥ 0.73.0 |
-| 4 | Accounts, and the rows behind one | ✅ 0.1.0 | 🚧 | inside the Portfolio tab |
-| 5 | Transactions: list and search | ✅ 0.1.0 | 🚧 | `transactions` with `q` |
-| 6 | Portfolio: holdings with value, gain and return | ✅ 1.1.0 | — | `holdings` + `performance` |
-| 7 | Allocation ring by asset class | ✅ 1.1.0 | — | `allocation` |
-| 8 | Swipe triage — categories | ✅ 0.2.0 | — | offline queue, flush in order |
-| 8a | Edit the rule a swipe creates | ✅ 1.2.0 | — | the pattern, and a switch for "this row only" |
-| 9 | Swipe triage — whose spending | ✅ 0.2.0 | — | needs dashboard ≥ 0.72.4 |
-| 10 | Share a statement into an account | ✅ 0.1.0 | — | Android share sheet / iOS share extension |
-| 11 | Home-screen widget: net worth | ✅ 0.2.0 | — | Glance / WidgetKit, drawn from the cache |
-| 12 | Background round + local notices | ✅ 0.2.0 | — | WorkManager / BGAppRefreshTask, every few hours |
+| 1 | Pairing with a six-digit code | ✅ 0.1.0 | ✅ 1.2.1 | `POST /api/v1/pair`; token to the encrypted store |
+| 2 | Overview: net worth, its parts, return per period | ✅ 0.1.0 | ✅ 1.2.1 | one `snapshot` call |
+| 3 | Net-worth line chart, six windows | ✅ 1.1.0 | ✅ 1.2.2 | `net_worth_history`, drawn by hand (Canvas / SwiftUI Path) |
+| 3a | Net worth without chosen asset classes | ✅ 1.2.0 | ✅ 1.2.1 | tick boxes over `by_class`, kept on the phone |
+| 3b | Performance: all eight windows without scrolling | ✅ 1.2.0 | ✅ 1.2.1 | two rows of four |
+| 3c | Refresh quotes and FX without a bank sync | ✅ 1.2.0 | ✅ 1.2.1 | `refresh_market`, dashboard ≥ 0.73.0 |
+| 4 | Accounts, and the rows behind one | ✅ 0.1.0 | ✅ 1.2.1 | inside the Portfolio tab |
+| 5 | Transactions: list and search | ✅ 0.1.0 | ✅ 1.2.1 | `transactions` with `q` |
+| 6 | Portfolio: holdings with value, gain and return | ✅ 1.1.0 | ✅ 1.2.2 | `holdings` + `performance` |
+| 7 | Allocation ring by asset class | ✅ 1.1.0 | ✅ 1.2.2 | `allocation` |
+| 8 | Swipe triage — categories | ✅ 0.2.0 | ✅ 1.2.2 | offline queue, flush in order |
+| 8a | Edit the rule a swipe creates | ✅ 1.2.0 | ✅ 1.2.2 | the pattern, and a switch for "this row only" |
+| 9 | Swipe triage — whose spending | ✅ 0.2.0 | ✅ 1.2.2 | needs dashboard ≥ 0.72.4 |
+| 10 | Share a statement into an account | ✅ 0.1.0 | ✅ 1.2.2 | Android share sheet / iOS share extension |
+| 11 | Home-screen widget: net worth | ✅ 0.2.0 | ✅ 1.2.2 | Glance / WidgetKit, drawn from the cache |
+| 12 | Background round + local notices | ✅ 0.2.0 | ✅ 1.2.2 | WorkManager / BGAppRefreshTask, every few hours |
 | 13 | Quick tile "sync now" | ✅ 0.2.0 | n/a | iOS has no equivalent; a Control (iOS 18) is the nearest |
-| 14 | Shortcut straight into triage | ✅ 0.2.0 | — | app shortcut / Home-screen quick action |
-| 15 | Unlock with the device's own lock | ✅ 0.1.0 | — | BiometricPrompt / LocalAuthentication |
+| 14 | Shortcut straight into triage | ✅ 0.2.0 | ✅ 1.2.2 | app shortcut / Home-screen quick action |
+| 15 | Unlock with the device's own lock | ✅ 0.1.0 | ✅ 1.2.2 | BiometricPrompt / LocalAuthentication |
 | 16 | German, French, Spanish | 🚧 partial | — | the dashboard has all three; the clients are mixed |
-| 17 | Cash flow: months, categories, what is left | ✅ 1.2.0 | 🚧 | `cashflow`, dashboard ≥ 0.73.0 |
+| 17 | Cash flow: months, categories, what is left | ✅ 1.2.0 | ✅ 1.2.1 | `cashflow`, dashboard ≥ 0.73.0 |
 | 18 | Wear / watchOS complication | — | — | nobody has asked yet |
 
 ## What the dashboard needs for each
