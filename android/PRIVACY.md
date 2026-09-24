@@ -1,6 +1,6 @@
-# Privacy
+# Privacy — the Wealth phone apps
 
-**Wealth** talks to one server: the Wealth Dashboard you paired it
+Both the Android and the iOS app talk to one server: the Wealth Dashboard you paired it
 with, which is yours. There is no account to make, no telemetry, no
 analytics, no advertising identifier, no crash reporter, and no server
 of ours in the middle — there is no "ours".
@@ -51,4 +51,4 @@ The app is not directed at children and collects nothing from anybody.
 
 ## Contact
 
-Issues and questions: <https://github.com/halvar20000/wealth-dashboard-android/issues>
+Issues and questions: <https://github.com/halvar20000/wealth-dashboard-mobile/issues>

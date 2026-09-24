@@ -1,0 +1,49 @@
+name: Build the iOS app
+
+# A stub until there is a project under ios/. It costs nothing while
+# the folder holds only a README, and it fails loudly the day somebody
+# adds a project without finishing this file.
+#
+# Note the runner: macOS minutes bill at 10× the Linux rate against a
+# private repository's free allowance, so think before making this run
+# on every push. Tags are what matter — and remember that GitHub
+# applies `paths:` filters to tag pushes too, which is why the Android
+# workflow has none.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is there anything to build yet?
+        id: probe
+        run: |
+          if ls ios/*.xcodeproj ios/*.xcworkspace >/dev/null 2>&1; then
+            echo "found=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Xcode project under ios/ — nothing to build."
+            echo "found=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        if: steps.probe.outputs.found == 'yes'
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -scheme Wealth -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | xcpretty || xcodebuild -scheme Wealth \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build

@@ -11,3 +11,11 @@ captures/
 *.aab
 *.keystore
 *.jks
+
+# iOS
+xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+.swiftpm/
+Pods/

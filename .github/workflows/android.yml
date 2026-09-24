@@ -1,13 +1,18 @@
-name: Build the app
+name: Build the Android app
 
 # Every push builds a debug APK and hangs it off the run, so a change
 # can be installed on a phone without a laptop in the loop. A tag also
-# builds a release APK, signed if the repository holds a keystore.
+# builds a release APK and the Play bundle, signed if the repository
+# holds a keystore.
+#
+# Deliberately no `paths:` filter, though only android/ concerns this
+# workflow: GitHub applies path filters to tag pushes as well, so a tag
+# sitting on an iOS-only commit would silently skip the Android
+# release. Two minutes on a Linux runner is the cheaper mistake.
 on:
   push:
     branches: [main]
     tags: ['v*']
-    paths-ignore: ['README.md', 'LICENSE', '.gitignore']
   pull_request:
   workflow_dispatch:
 
@@ -37,12 +42,13 @@ jobs:
           gradle-version: '8.9'
 
       - name: Assemble the debug APK
+        working-directory: android
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
           name: wealth-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       # The keystore, if this repository has one. Gradle signs with it —
@@ -69,6 +75,7 @@ jobs:
           # Only needed for a keystore whose type the runtime would not
           # guess — an old JKS written with -storetype JKS, say.
           KEYSTORE_TYPE: ${{ secrets.KEYSTORE_TYPE }}
+        working-directory: android
         run: gradle :app:assembleRelease :app:bundleRelease --no-daemon --stacktrace
 
       - name: Forget the keystore
@@ -79,6 +86,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
           generate_release_notes: true

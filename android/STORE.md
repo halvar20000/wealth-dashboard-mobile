@@ -64,8 +64,14 @@ own.
 **Privacy policy URL**
 
 ```
-https://github.com/halvar20000/wealth-dashboard-android/blob/main/PRIVACY.md
+https://github.com/halvar20000/wealth-dashboard/blob/main/docs/PRIVACY-mobile.md
 ```
+
+That link points at the **dashboard's** repository, which is public.
+This one is private, so a link into it would be a dead end for Play's
+reviewer and for anybody who tapped it in the store listing — the same
+text lives in both places, and `android/PRIVACY.md` here is the copy we
+edit.
 
 ## Data safety form
 
