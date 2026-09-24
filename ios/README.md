@@ -1,7 +1,9 @@
 # Wealth Dashboard — the iOS app
 
-Phase 1 is here: pairing, the overview, accounts and their rows,
-transactions with search. The rest is issue #1 and its sub-issues.
+Here so far: pairing, the overview (with the classes that count, eight
+return windows and the quotes-only refresh), accounts and their rows,
+cash flow, transactions with search. The rest is issue #1 and its
+sub-issues.
 
 Read [CONTRACT.md](../CONTRACT.md) first: it is what the dashboard
 answers and the rules both apps keep. Then [PARITY.md](../PARITY.md)

@@ -11,9 +11,11 @@ import Security
 final class Store {
     private let service: String
     private let directory: URL
+    private let defaults: UserDefaults
 
-    init(service: String = "fr.smarthomeworld.wealth", directory: URL? = nil) {
+    init(service: String = "fr.smarthomeworld.wealth", directory: URL? = nil, defaults: UserDefaults = .standard) {
         self.service = service
+        self.defaults = defaults
         self.directory = directory ?? FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Wealth", isDirectory: true)
@@ -36,12 +38,30 @@ final class Store {
         set { write("server_name", newValue) }
     }
 
+    /// What the dashboard said it was, at pairing or in the last
+    /// snapshot — the floor a feature checks before it shows itself.
+    var serverVersion: String? {
+        get { read("server_version") }
+        set { write("server_version", newValue) }
+    }
+
+    /// The asset classes left out of the figure at the top (contract
+    /// rule 8). A way of looking rather than a fact about the money, so
+    /// it is the phone's alone — and it survives a restart, because
+    /// unticking the house every morning would be worse than not being
+    /// able to.
+    var excludedClasses: Set<String> {
+        get { Set(defaults.stringArray(forKey: "excluded_classes") ?? []) }
+        set { defaults.set(newValue.sorted(), forKey: "excluded_classes") }
+    }
+
     var paired: Bool { !(baseURL ?? "").isEmpty && !(token ?? "").isEmpty }
 
     func pair(url: String, reply: Paired) {
         baseURL = Api.normalise(url)
         token = reply.token
         serverName = reply.server?.name
+        serverVersion = reply.server?.version
     }
 
     /// "Forget this dashboard": the token, the address and every figure.
@@ -50,6 +70,7 @@ final class Store {
                                     kSecAttrService as String: service]
         SecItemDelete(query as CFDictionary)
         try? FileManager.default.removeItem(at: directory)
+        defaults.removeObject(forKey: "excluded_classes")
     }
 
     func api() -> Api { Api(baseURL: baseURL ?? "", token: token) }

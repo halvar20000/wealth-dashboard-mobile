@@ -80,6 +80,12 @@ struct Api {
         req.setValue("Bearer \(token ?? "")", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
 
+        return try await send(req, as: type)
+    }
+
+    /// The envelope unwrapped, and the dashboard's own sentence when it
+    /// refuses.
+    private func send<T: Decodable>(_ req: URLRequest, as type: T.Type) async throws -> T {
         let (data, response) = try await session.data(for: req)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
@@ -103,6 +109,32 @@ struct Api {
         if let accountId { args["account_id"] = String(accountId) }
         if let q = query?.trimmingCharacters(in: .whitespaces), !q.isEmpty { args["q"] = q }
         return try await tool("transactions", args, as: TransactionPage.self)
+    }
+
+    /// Income and spending per month, the dashboard's own arithmetic.
+    func cashflow(months: Int = 13) async throws -> Cashflow {
+        try await tool("cashflow", ["months": String(months)], as: Cashflow.self)
+    }
+
+    /// Quote every holding again and refetch the rates — no bank is
+    /// touched, which is why this is the one a phone may press often.
+    func refreshMarket() async throws -> Market {
+        try await post("refresh_market", as: Market.self)
+    }
+
+    /// One tool, called with POST and a JSON object of arguments — what a
+    /// write wants.
+    func post<T: Decodable>(_ name: String, _ args: [String: String] = [:], as type: T.Type) async throws -> T {
+        guard let url = URL(string: baseURL + "/api/v1/tools/" + name) else {
+            throw Failure(status: 0, message: "That address is not a URL.")
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(token ?? "")", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONEncoder().encode(args)
+        return try await send(req, as: type)
     }
 
     /// The sentence for a status the dashboard gave no words for.

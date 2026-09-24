@@ -17,9 +17,9 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 1 | Pairing with a six-digit code | ✅ 0.1.0 | 🚧 | `POST /api/v1/pair`; token to the encrypted store |
 | 2 | Overview: net worth, its parts, return per period | ✅ 0.1.0 | 🚧 | one `snapshot` call |
 | 3 | Net-worth line chart, six windows | ✅ 1.1.0 | — | `net_worth_history`, drawn by hand (Canvas / SwiftUI Path) |
-| 3a | Net worth without chosen asset classes | ✅ 1.2.0 | — | tick boxes over `by_class`, kept on the phone |
-| 3b | Performance: all eight windows without scrolling | ✅ 1.2.0 | — | two rows of four |
-| 3c | Refresh quotes and FX without a bank sync | ✅ 1.2.0 | — | `refresh_market`, dashboard ≥ 0.73.0 |
+| 3a | Net worth without chosen asset classes | ✅ 1.2.0 | 🚧 | tick boxes over `by_class`, kept on the phone |
+| 3b | Performance: all eight windows without scrolling | ✅ 1.2.0 | 🚧 | two rows of four |
+| 3c | Refresh quotes and FX without a bank sync | ✅ 1.2.0 | 🚧 | `refresh_market`, dashboard ≥ 0.73.0 |
 | 4 | Accounts, and the rows behind one | ✅ 0.1.0 | 🚧 | inside the Portfolio tab |
 | 5 | Transactions: list and search | ✅ 0.1.0 | 🚧 | `transactions` with `q` |
 | 6 | Portfolio: holdings with value, gain and return | ✅ 1.1.0 | — | `holdings` + `performance` |
@@ -34,7 +34,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 14 | Shortcut straight into triage | ✅ 0.2.0 | — | app shortcut / Home-screen quick action |
 | 15 | Unlock with the device's own lock | ✅ 0.1.0 | — | BiometricPrompt / LocalAuthentication |
 | 16 | German, French, Spanish | 🚧 partial | — | the dashboard has all three; the clients are mixed |
-| 17 | Cash flow: months, categories, what is left | ✅ 1.2.0 | — | `cashflow`, dashboard ≥ 0.73.0 |
+| 17 | Cash flow: months, categories, what is left | ✅ 1.2.0 | 🚧 | `cashflow`, dashboard ≥ 0.73.0 |
 | 18 | Wear / watchOS complication | — | — | nobody has asked yet |
 
 ## What the dashboard needs for each

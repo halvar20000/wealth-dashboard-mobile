@@ -160,6 +160,73 @@ final class WealthTests: XCTestCase {
             XCTFail("unexpected \(error)")
         }
     }
+
+    // Contract rule 8: an unticked class leaves the figure; with nothing
+    // unticked the dashboard's own total stands, rounding and all.
+    func testFigureWithoutChosenClasses() {
+        var s = Snapshot()
+        s.netWorth = NetWorth(netWorth: 1_000.4, byClass: [
+            ClassValue(name: "Cash", value: 200), ClassValue(name: "Equity", value: 300),
+            ClassValue(name: "Real estate", value: 500),
+        ])
+        XCTAssertEqual(s.figure(excluding: []), 1_000.4)
+        XCTAssertEqual(s.figure(excluding: ["Something gone"]), 1_000.4)
+        XCTAssertEqual(s.figure(excluding: ["Real estate"]), 500)
+        XCTAssertEqual(s.figure(excluding: ["Real estate", "Equity"]), 200)
+    }
+
+    func testExcludedClassesSurviveAndAreForgotten() throws {
+        let suite = "test." + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = Store(service: suite, directory: dir, defaults: defaults)
+        store.excludedClasses = ["Real estate"]
+        XCTAssertEqual(Store(service: suite, directory: dir, defaults: defaults).excludedClasses, ["Real estate"])
+        store.forget()
+        XCTAssertEqual(store.excludedClasses, [])
+        defaults.removePersistentDomain(forName: suite)
+    }
+
+    // Contract rule 6: features hide below their floor.
+    func testDashboardVersion() {
+        XCTAssertTrue(DashboardVersion.isAtLeast("0.73.0", "0.73.0"))
+        XCTAssertTrue(DashboardVersion.isAtLeast("0.73.2", "0.73.0"))
+        XCTAssertTrue(DashboardVersion.isAtLeast("1.0", "0.73.0"))
+        XCTAssertFalse(DashboardVersion.isAtLeast("0.72.7", "0.73.0"))
+        XCTAssertFalse(DashboardVersion.isAtLeast("0.9.9", "0.73.0"))
+        XCTAssertTrue(DashboardVersion.isAtLeast("0.73.0-dev", "0.73.0"))
+    }
+
+    func testCashflowDecodes() throws {
+        let json = """
+        {"months": [{"month": "2026-08", "income": 5000, "spending": 3200.5, "investment": 500,
+                     "net": 1799.5, "categories": {"rent": 1200}}],
+         "by_category": [{"category": "rent", "label": "Rent", "colour": "#7c3aed", "total": 14400, "per_month": 1200}],
+         "income_by_category": [],
+         "total_investment": 6000, "average_income": 5000, "average_spending": 3200.5,
+         "months_covered": 12, "base_currency": "EUR",
+         "unconverted": [{"currency": "CHF", "amount": 12.5}]}
+        """
+        let flow = try Api.decoder.decode(Cashflow.self, from: Data(json.utf8))
+        XCTAssertEqual(flow.months?.first?.month, "2026-08")
+        XCTAssertEqual(flow.byCategory?.first?.perMonth, 1200)
+        XCTAssertEqual(flow.byCategory?.first?.title, "Rent")
+        XCTAssertEqual(flow.averageNet, 1799.5)
+        XCTAssertEqual(flow.averageInvestment, 500)
+        XCTAssertEqual(flow.unconverted?.first?.currency, "CHF")
+    }
+
+    // Contract rule 9: the cheap refresh is a POST to refresh_market.
+    func testRefreshMarketPosts() async throws {
+        StubProtocol.reply = (200, #"{"ok": true, "result": {"prices": {"priced": 12, "failed": 0}, "net_worth": {"net_worth": 5}}}"#)
+        let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
+        let market = try await api.refreshMarket()
+        XCTAssertEqual(market.prices?.priced, 12)
+        XCTAssertEqual(market.netWorth?.total, 5)
+        let request = try XCTUnwrap(StubProtocol.lastRequest)
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.path, "/api/v1/tools/refresh_market")
+    }
 }
 
 /// Answers every request with one canned reply, and remembers the request.

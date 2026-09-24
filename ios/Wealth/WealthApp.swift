@@ -24,8 +24,15 @@ struct RootView: View {
                     .tabItem { Label("Overview", systemImage: "chart.line.uptrend.xyaxis") }
                 AccountsView()
                     .tabItem { Label("Accounts", systemImage: "building.columns") }
-                NavigationStack { TransactionsView(account: nil) }
-                    .tabItem { Label("Rows", systemImage: "arrow.up.arrow.down") }
+                // Cash flow, with the rows one button away — or the rows
+                // alone against a dashboard older than the cashflow tool.
+                if model.supports("0.73.0") {
+                    NavigationStack { CashflowView() }
+                        .tabItem { Label("Cash flow", systemImage: "arrow.up.arrow.down") }
+                } else {
+                    NavigationStack { TransactionsView(account: nil) }
+                        .tabItem { Label("Rows", systemImage: "arrow.up.arrow.down") }
+                }
                 SettingsView()
                     .tabItem { Label("Settings", systemImage: "gearshape") }
             }

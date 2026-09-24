@@ -6,11 +6,13 @@ private struct PeriodWindow {
     let label: LocalizedStringKey
 }
 
+// Short on purpose: eight of these sit four to a row on a phone, so the
+// day and "since start" are on screen together.
 private let periods = [
-    PeriodWindow(key: "1d", label: "1 day"), PeriodWindow(key: "1w", label: "1 week"),
-    PeriodWindow(key: "1m", label: "1 month"), PeriodWindow(key: "3m", label: "3 months"),
-    PeriodWindow(key: "ytd", label: "YTD"), PeriodWindow(key: "1y", label: "1 year"),
-    PeriodWindow(key: "3y", label: "3 years"), PeriodWindow(key: "all", label: "Since start"),
+    PeriodWindow(key: "1d", label: "1D"), PeriodWindow(key: "1w", label: "1W"),
+    PeriodWindow(key: "1m", label: "1M"), PeriodWindow(key: "3m", label: "3M"),
+    PeriodWindow(key: "ytd", label: "YTD"), PeriodWindow(key: "1y", label: "1Y"),
+    PeriodWindow(key: "3y", label: "3Y"), PeriodWindow(key: "all", label: "Start"),
 ]
 
 /// Net worth, its parts, the return per period and what is due — all
@@ -38,6 +40,26 @@ struct OverviewView: View {
             }
             .navigationTitle(model.serverName ?? "Overview")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // Two refreshes, never confused (contract rule 9): pulling
+                // the list re-reads what the dashboard knows; this button
+                // makes it quote the holdings and fetch the rates again.
+                // Neither talks to a bank.
+                if model.supports("0.73.0") && model.snapshot != nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            Task { await model.refreshMarket() }
+                        } label: {
+                            if model.pricing {
+                                ProgressView()
+                            } else {
+                                Label("Refresh quotes", systemImage: "chart.line.uptrend.xyaxis.circle")
+                            }
+                        }
+                        .disabled(model.pricing)
+                    }
+                }
+            }
         }
     }
 
@@ -48,10 +70,15 @@ struct OverviewView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("NET WORTH")
                         .font(.caption2).tracking(2).foregroundStyle(.secondary)
-                    Text(Fmt.money(s.netWorth?.total, ccy))
+                    Text(Fmt.money(s.figure(excluding: model.excluded), ccy))
                         .font(.system(size: 40, weight: .heavy))
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
+                    let dropped = (s.netWorth?.byClass ?? []).compactMap(\.name).filter { model.excluded.contains($0) }
+                    if !dropped.isEmpty {
+                        Text("without \(dropped.joined(separator: ", ")) · with everything \(Fmt.money(s.netWorth?.total, ccy))")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                     let parts = [
                         s.netWorth?.cash.map { "\(String(localized: "Cash")) \(Fmt.money($0, ccy))" },
                         s.netWorth?.securities.map { "\(String(localized: "Securities")) \(Fmt.money($0, ccy))" },
@@ -74,35 +101,47 @@ struct OverviewView: View {
             let shown = periods.filter { s.performance?[$0.key] != nil }
             if !shown.isEmpty {
                 Section("Performance") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(shown, id: \.key) { p in
-                                PerfTile(label: p.label, period: s.performance![p.key]!, currency: ccy)
-                            }
+                    // Two rows of four rather than a strip that scrolls off
+                    // the screen: the point of these eight is comparing them.
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+                        ForEach(shown, id: \.key) { p in
+                            PerfTile(label: p.label, period: s.performance![p.key]!, currency: ccy)
                         }
-                        .padding(.vertical, 4)
                     }
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .padding(.vertical, 4)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
+                    .listRowBackground(Color.clear)
                 }
             }
 
             if let classes = s.netWorth?.byClass, !classes.isEmpty {
-                Section("By class") {
+                Section {
                     ForEach(classes, id: \.self) { c in
-                        LabeledContent(c.name ?? "—", value: Fmt.money(c.value, ccy))
+                        ClassRow(item: c, currency: ccy, counted: !model.excluded.contains(c.name ?? "")) {
+                            model.toggleClass(c.name ?? "")
+                        }
+                    }
+                } header: {
+                    HStack {
+                        Text("What counts")
+                        Spacer()
+                        if !model.excluded.isEmpty {
+                            Button("Everything") { model.includeEverything() }
+                                .font(.caption)
+                                .textCase(nil)
+                        }
                     }
                 }
             }
 
             if let up = s.upcoming {
                 Section("Next \(up.days ?? 30) days") {
-                    LabeledContent("Cash now", value: Fmt.money(up.starting, ccy))
-                    LabeledContent("After what is due", value: Fmt.money(up.ending, ccy))
-                    if let low = up.lowest {
-                        Text("Lowest \(Fmt.money(low.running, ccy)) on \(Fmt.day(low.date)) — \(low.name ?? "")")
-                            .font(.footnote)
-                            .foregroundStyle((low.running ?? 0) < 0 ? Color.loss : Color.secondary)
-                    }
+                    // One line of context: what is due is the list below,
+                    // and the only figure worth carrying over it is what
+                    // is left once it has all gone out.
+                    Text(upcomingLine(up, ccy))
+                        .font(.footnote)
+                        .foregroundStyle(up.belowZero != nil ? Color.loss : Color.secondary)
                     ForEach(s.events ?? [], id: \.self) { e in
                         HStack {
                             VStack(alignment: .leading) {
@@ -138,6 +177,14 @@ struct OverviewView: View {
         return line
     }
 
+    private func upcomingLine(_ up: Upcoming, _ ccy: String) -> String {
+        var line = String(localized: "Cash now \(Fmt.money(up.starting, ccy)) → after \(Fmt.money(up.ending, ccy))")
+        if let below = up.belowZero {
+            line += " · " + String(localized: "below zero on \(Fmt.day(below.date))")
+        }
+        return line
+    }
+
     private func syncLine(_ sync: SyncHealth?) -> String {
         let links = sync?.links ?? 0
         let red = sync?.red ?? 0
@@ -153,12 +200,38 @@ private struct PerfTile: View {
     var body: some View {
         let colour = Color.sign(period.twr)
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
-            Text(Fmt.percent(period.twr)).font(.headline.weight(.heavy)).foregroundStyle(colour)
-            Text(Fmt.signedMoney(period.pnl, currency)).font(.caption).foregroundStyle(colour.opacity(0.85))
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(Fmt.percent(period.twr)).font(.subheadline.weight(.heavy)).foregroundStyle(colour)
+            Text(Fmt.signedMoney(period.pnl, currency)).font(.caption2).foregroundStyle(colour.opacity(0.85))
         }
-        .frame(width: 118, alignment: .leading)
-        .padding(12)
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
         .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+/// One asset class, ticked when it counts towards the figure at the top.
+private struct ClassRow: View {
+    let item: ClassValue
+    let currency: String
+    let counted: Bool
+    let toggle: () -> Void
+
+    var body: some View {
+        Button(action: toggle) {
+            HStack {
+                Image(systemName: counted ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(counted ? Color.gain : Color.secondary)
+                Text(item.name ?? "—")
+                Spacer()
+                Text(Fmt.money(item.value, currency)).fontWeight(.semibold)
+            }
+            .foregroundStyle(counted ? Color.primary : Color.secondary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
