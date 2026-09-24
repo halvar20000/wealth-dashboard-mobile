@@ -32,8 +32,12 @@ and the provisioning profile. Put what CI needs in the repository's
 secrets, as the Android side does (`KEYSTORE_BASE64` and friends) — and
 never in the repository itself.
 
-`.github/workflows/ios.yml` is a stub that does nothing until there is
-a project here. It runs on a macOS runner, which on a **private**
-repository bills at ten times the Linux rate against the free monthly
-minutes; that is why the stub exits early rather than building on every
-push. Decide what it should do once there is something to build.
+`.github/workflows/ios.yml` waits for a project: a Linux job decides in
+about fifteen seconds whether a Mac is needed at all, and starts one
+only for a tag, a manual run, or a push that actually touched `ios/`.
+The repository is public, so the minutes are free either way — the
+filter is there so a build you are waiting for is not queued behind one
+nobody needed.
+
+It expects a scheme called **`Wealth`**. Name yours differently and
+change that one line, or say so and it will be changed for you.

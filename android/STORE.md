@@ -67,11 +67,11 @@ own.
 https://github.com/halvar20000/wealth-dashboard/blob/main/docs/PRIVACY-mobile.md
 ```
 
-That link points at the **dashboard's** repository, which is public.
-This one is private, so a link into it would be a dead end for Play's
-reviewer and for anybody who tapped it in the store listing — the same
-text lives in both places, and `android/PRIVACY.md` here is the copy we
-edit.
+That link points at the **dashboard's** repository on purpose: it is
+the address that will still be there when this repository is renamed or
+reorganised, and Play does not like a policy URL that moves. The same
+text lives here as `android/PRIVACY.md`, which is the copy we edit —
+change it there, copy it across.
 
 ## Data safety form
 
