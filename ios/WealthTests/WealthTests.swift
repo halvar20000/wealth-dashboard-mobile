@@ -293,7 +293,7 @@ final class WealthTests: XCTestCase {
         XCTAssertEqual(q.transactions?.first?.pattern, "Tenmanya")
         XCTAssertEqual(q.remaining, 140)
 
-        let list = #"[{"slug": "restaurants", "label": "Restaurants", "group": "spending", "colour": "#f59e0b", "transactions": 31, "rules": 4, "deletable": true, "group_locked": false}]"#
+        let list = ##"[{"slug": "restaurants", "label": "Restaurants", "group": "spending", "colour": "#f59e0b", "transactions": 31, "rules": 4, "deletable": true, "group_locked": false}]"##
         let categories = try Api.decoder.decode([Category].self, from: Data(list.utf8))
         XCTAssertEqual(categories.first?.title, "Restaurants")
     }
