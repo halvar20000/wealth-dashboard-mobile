@@ -28,6 +28,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 8a | Edit the rule a swipe creates | ✅ 1.2.0 | ✅ 1.2.2 | the pattern, and a switch for "this row only" |
 | 9 | Swipe triage — whose spending | ✅ 0.2.0 | ✅ 1.2.2 | needs dashboard ≥ 0.72.4 |
 | 10 | Share a statement into an account | ✅ 0.1.0 | ✅ 1.2.2 | Android share sheet / iOS share extension |
+| 10a | "Open with" a downloaded file, not only "share" | ✅ 1.2.3 | — | Android: ACTION_VIEW on content:// and file://. iOS: `CFBundleDocumentTypes` plus `LSSupportsOpeningDocumentsInPlace`, so a download in Safari or Files offers Wealth |
 | 11 | Home-screen widget: net worth | ✅ 0.2.0 | ✅ 1.2.2 | Glance / WidgetKit, drawn from the cache |
 | 12 | Background round + local notices | ✅ 0.2.0 | ✅ 1.2.2 | WorkManager / BGAppRefreshTask, every few hours |
 | 13 | Quick tile "sync now" | ✅ 0.2.0 | n/a | iOS has no equivalent; a Control (iOS 18) is the nearest |
