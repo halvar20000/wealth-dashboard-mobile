@@ -1,6 +1,9 @@
 # Wealth Dashboard — the iOS app
 
-Nothing here yet. This page is the brief.
+Here so far: pairing, the overview (with the classes that count, eight
+return windows and the quotes-only refresh), accounts and their rows,
+cash flow, transactions with search. The rest is issue #1 and its
+sub-issues.
 
 Read [CONTRACT.md](../CONTRACT.md) first: it is what the dashboard
 answers and the rules both apps keep. Then [PARITY.md](../PARITY.md)
@@ -25,19 +28,46 @@ similar. What it does, and the nearest platform equivalent:
 | `BiometricPrompt` | `LocalAuthentication` |
 | Charts on a `Canvas`, ~50 lines | SwiftUI `Path`, or Swift Charts if it earns its place |
 
-## Signing and the store
+## Opening it
 
-Apple's side is yours: the developer account, the signing certificate
-and the provisioning profile. Put what CI needs in the repository's
-secrets, as the Android side does (`KEYSTORE_BASE64` and friends) — and
-never in the repository itself.
+`ios/Wealth.xcodeproj`, Xcode 16 or newer, iOS 17 and up. No packages,
+no CocoaPods. The folders `Wealth/` and `WealthTests/` are synchronised
+groups: a file dropped into them is in the target, with no project edit.
 
-`.github/workflows/ios.yml` waits for a project: a Linux job decides in
-about fifteen seconds whether a Mac is needed at all, and starts one
-only for a tag, a manual run, or a push that actually touched `ios/`.
-The repository is public, so the minutes are free either way — the
-filter is there so a build you are waiting for is not queued behind one
-nobody needed.
+To run it on a phone, pick your team under **Signing & Capabilities**.
+The bundle id is `com.herbrig.wealthdashboard`, the same as on Play.
 
-It expects a scheme called **`Wealth`**. Name yours differently and
-change that one line, or say so and it will be changed for you.
+```
+Wealth/
+  Data/   Api (the HTTP surface), Models, Store (Keychain + cache), AppModel
+  UI/     one view per screen, Format (money, days, gain/loss colours)
+WealthTests/   the contract where it can be checked without a dashboard
+Info.plist     only what build settings cannot say: local http, no export question
+```
+
+## CI and TestFlight
+
+`.github/workflows/ios.yml` builds and tests on a simulator, unsigned,
+whenever a push or pull request touched `ios/`. A Linux job decides in
+about fifteen seconds whether a Mac is needed at all. The repository is
+public, so the minutes are free either way — the filter is there so a
+build you are waiting for is not queued behind one nobody needed. It
+expects the scheme **`Wealth`**, which is shared in the project.
+
+A `v1.2.3` tag also archives the app as marketing version 1.2.3, build
+10203, and uploads it to TestFlight — once these four secrets exist
+(Settings → Secrets and variables → Actions), and never in the
+repository itself:
+
+| Secret | What |
+|---|---|
+| `APP_STORE_CONNECT_KEY_ID` | the key's id, from App Store Connect → Users and Access → Integrations → App Store Connect API |
+| `APP_STORE_CONNECT_ISSUER_ID` | the issuer id shown above the list of keys |
+| `APP_STORE_CONNECT_KEY_BASE64` | the downloaded `AuthKey_….p8`, as `base64 -i AuthKey_XXXX.p8` |
+| `APPLE_TEAM_ID` | the ten-character team id, from developer.apple.com → Membership |
+
+The key needs the **Admin** role: Xcode signs in the cloud with it,
+so no certificate or profile lives in the repository or its secrets.
+The app itself must exist in App Store Connect with the bundle id
+above. Without the secrets a tag still builds and tests, and simply
+skips the upload.

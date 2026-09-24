@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyLists-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The keys Xcode cannot generate from build settings. Everything
+	     else (name, version, launch screen) comes from the target. -->
+
+	<!-- A dashboard on the home network is often plain http at an IP
+	     address or a .local name. Allow that, and only that: anything on
+	     the internet still has to be https. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>To reach the Wealth Dashboard you run on your own network.</string>
+
+	<!-- Only the system's own TLS: no export-compliance question on every
+	     TestFlight upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+</dict>
+</plist>
