@@ -14,11 +14,11 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 
 | # | Feature | Android | iOS | Notes |
 |---|---|---|---|---|
-| 1 | Pairing with a six-digit code | ✅ 0.1.0 | — | `POST /api/v1/pair`; token to the encrypted store |
-| 2 | Overview: net worth, its parts, return per period | ✅ 0.1.0 | — | one `snapshot` call |
+| 1 | Pairing with a six-digit code | ✅ 0.1.0 | 🚧 | `POST /api/v1/pair`; token to the encrypted store |
+| 2 | Overview: net worth, its parts, return per period | ✅ 0.1.0 | 🚧 | one `snapshot` call |
 | 3 | Net-worth line chart, six windows | ✅ 1.1.0 | — | `net_worth_history`, drawn by hand (Canvas / SwiftUI Path) |
-| 4 | Accounts, and the rows behind one | ✅ 0.1.0 | — | inside the Portfolio tab |
-| 5 | Transactions: list and search | ✅ 0.1.0 | — | `transactions` with `q` |
+| 4 | Accounts, and the rows behind one | ✅ 0.1.0 | 🚧 | inside the Portfolio tab |
+| 5 | Transactions: list and search | ✅ 0.1.0 | 🚧 | `transactions` with `q` |
 | 6 | Portfolio: holdings with value, gain and return | ✅ 1.1.0 | — | `holdings` + `performance` |
 | 7 | Allocation ring by asset class | ✅ 1.1.0 | — | `allocation` |
 | 8 | Swipe triage — categories | ✅ 0.2.0 | — | offline queue, flush in order |

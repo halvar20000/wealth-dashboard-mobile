@@ -1,49 +1,160 @@
 name: Build the iOS app
 
-# A stub until there is a project under ios/. It costs nothing while
-# the folder holds only a README, and it fails loudly the day somebody
-# adds a project without finishing this file.
+# A pull request that touches ios/ is built and tested on a simulator;
+# a tag also archives the app, signs it and uploads it to TestFlight,
+# if the repository holds an App Store Connect API key.
 #
-# Note the runner: macOS minutes bill at 10× the Linux rate against a
-# private repository's free allowance, so think before making this run
-# on every push. Tags are what matter — and remember that GitHub
-# applies `paths:` filters to tag pushes too, which is why the Android
-# workflow has none.
+# The runner is macOS, whose minutes bill at 10× the Linux rate against
+# a private repository's free allowance. So: no build on every push to
+# main (the pull request before it already built), and a `paths:` filter
+# on pull requests only. Tags carry no filter — GitHub applies `paths:`
+# to tag pushes too, and a tag on an Android-only commit must still
+# ship the iOS app with the same number.
 on:
   push:
-    branches: [main]
     tags: ['v*']
   pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
-      - name: Is there anything to build yet?
-        id: probe
+      # The newest released Xcode on the image: App Store Connect only
+      # takes builds made with a recent SDK.
+      - name: Pick Xcode
         run: |
-          if ls ios/*.xcodeproj ios/*.xcworkspace >/dev/null 2>&1; then
-            echo "found=yes" >> "$GITHUB_OUTPUT"
-          else
-            echo "No Xcode project under ios/ — nothing to build."
-            echo "found=no" >> "$GITHUB_OUTPUT"
-          fi
+          XCODE=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
 
-      - name: Build
-        if: steps.probe.outputs.found == 'yes'
+      # Whichever iPhone simulator the image has, newest runtime first —
+      # a hard-coded name breaks the day the image changes.
+      - name: Pick a simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, re, sys
+          devices = json.load(sys.stdin)["devices"]
+          def version(runtime):
+              return [int(n) for n in re.findall(r"\d+", runtime.split("iOS")[-1])]
+          phones = [(version(rt), d["udid"]) for rt, ds in devices.items() if "iOS" in rt
+                    for d in ds if d["name"].startswith("iPhone")]
+          print(max(phones)[1])')
+          echo "SIMULATOR=$UDID" >> "$GITHUB_ENV"
+
+      - name: Build and test
         working-directory: ios
         run: |
-          set -o pipefail
-          xcodebuild -scheme Wealth -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO build | xcpretty || xcodebuild -scheme Wealth \
-            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+          xcodebuild test \
+            -project Wealth.xcodeproj -scheme Wealth \
+            -destination "id=$SIMULATOR" \
+            CODE_SIGNING_ALLOWED=NO
+
+  testflight:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      ASC_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
+      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # No key, no upload — and no red tag either: the Android release
+      # on the same tag must not look broken because iOS is not set up.
+      - name: Is there a key?
+        id: key
+        run: |
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY" ] || [ -z "$TEAM_ID" ]; then
+            echo "::notice::No App Store Connect key in the secrets: nothing goes to TestFlight."
+            echo "found=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/keys"
+          echo "$ASC_KEY" | base64 -d > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
+          echo "KEY_PATH=$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" >> "$GITHUB_ENV"
+          echo "found=yes" >> "$GITHUB_OUTPUT"
+
+      - name: Pick Xcode
+        if: steps.key.outputs.found == 'yes'
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      # The tag is the version, as on Android: v1.2.3 is marketing
+      # version 1.2.3 and build 10203.
+      - name: Version from the tag
+        if: steps.key.outputs.found == 'yes'
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          if ! [[ "$V" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::A tag reads v1.2.3; $GITHUB_REF_NAME does not."
+            exit 1
+          fi
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          echo "BUILD=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))" >> "$GITHUB_ENV"
+
+      # Signing is Xcode's own, done in the cloud with the API key: no
+      # certificate or profile lives in this repository or its secrets.
+      - name: Archive
+        if: steps.key.outputs.found == 'yes'
+        working-directory: ios
+        run: |
+          xcodebuild archive \
+            -project Wealth.xcodeproj -scheme Wealth -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Wealth.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD"
+
+      - name: Upload to TestFlight
+        if: steps.key.outputs.found == 'yes'
+        run: |
+          cat > "$RUNNER_TEMP/export.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyLists-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Wealth.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Remove the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
