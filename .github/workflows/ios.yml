@@ -1,37 +1,91 @@
 name: Build the iOS app
 
-# A pull request that touches ios/ is built and tested on a simulator;
-# a tag also archives the app, signs it and uploads it to TestFlight,
-# if the repository holds an App Store Connect API key.
+# A change under ios/ is built and tested on a simulator; a tag also
+# archives the app, signs it and uploads it to TestFlight, if the
+# repository holds an App Store Connect API key.
 #
-# The runner is macOS, whose minutes bill at 10× the Linux rate against
-# a private repository's free allowance. So: no build on every push to
-# main (the pull request before it already built), and a `paths:` filter
-# on pull requests only. Tags carry no filter — GitHub applies `paths:`
-# to tag pushes too, and a tag on an Android-only commit must still
-# ship the iOS app with the same number.
+# macOS minutes bill at **10×** the Linux rate against a private
+# repository's free allowance: 2 000 included minutes are 200 macOS
+# minutes, and a SwiftUI build is 3–8 of them. So nothing here starts a
+# macOS runner until it is worth it — the decision is made on Linux
+# first, where a job costs about fifteen seconds at 1×.
+#
+# A macOS runner starts only when:
+#   • a tag is pushed (a release must always build), or
+#   • the push or pull request actually touched ios/, or
+#   • somebody asks for it by hand, or
+#   • this workflow itself changed.
+#
+# The filter lives in a job rather than in `on: paths:` on purpose:
+# GitHub applies path filters to tag pushes as well, and a tag sitting
+# on an Android-only commit would then silently skip the iOS release.
 on:
   push:
+    branches: [main]
     tags: ['v*']
   pull_request:
-    paths:
-      - 'ios/**'
-      - '.github/workflows/ios.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # Fifteen seconds on Linux to spare ten minutes of quota on macOS.
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: check
+        run: |
+          set -e
+          if ! ls ios/*.xcodeproj ios/*.xcworkspace >/dev/null 2>&1; then
+            echo "No Xcode project under ios/ yet — nothing to build."
+            echo "build=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$GITHUB_REF_TYPE" = "tag" ] || [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "A tag or a manual run: always build."
+            echo "build=yes" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          base='${{ github.event.pull_request.base.sha || github.event.before }}'
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "No usable base to compare against — build to be safe."
+            echo "build=yes" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "$base" "$GITHUB_SHA" \
+             | grep -qE '^(ios/|\.github/workflows/ios\.yml)'; then
+            echo "ios/ changed."
+            echo "build=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing under ios/ changed — no macOS runner needed."
+            echo "build=no" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
+    needs: decide
+    if: needs.decide.outputs.build == 'yes'
     runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      # Half of a cold iOS build is resolving and compiling packages.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+          key: ios-${{ runner.os }}-${{ hashFiles('ios/**/Package.resolved', 'ios/**/project.pbxproj') }}
+          restore-keys: ios-${{ runner.os }}-
 
       # The newest released Xcode on the image: App Store Connect only
       # takes builds made with a recent SDK.

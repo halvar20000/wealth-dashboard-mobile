@@ -43,9 +43,9 @@ Info.plist     only what build settings cannot say: local http, no export questi
 
 ## CI and TestFlight
 
-`.github/workflows/ios.yml` builds and tests every pull request that
-touches `ios/` on a simulator, unsigned. A push to `main` does not
-build again — macOS minutes bill at ten times the Linux rate here.
+`.github/workflows/ios.yml` builds and tests on a simulator, unsigned,
+whenever a push or pull request touched `ios/` — a Linux job decides
+first, because macOS minutes bill at ten times the Linux rate here.
 
 A `v1.2.3` tag also archives the app as marketing version 1.2.3, build
 10203, and uploads it to TestFlight — once these four secrets exist
