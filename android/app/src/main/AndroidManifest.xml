@@ -46,12 +46,41 @@
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="text/csv" />
                 <data android:mimeType="text/comma-separated-values" />
+                <data android:mimeType="text/x-csv" />
+                <data android:mimeType="application/csv" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:mimeType="application/x-ofx" />
+                <data android:mimeType="application/vnd.intu.qfx" />
                 <data android:mimeType="text/plain" />
                 <data android:mimeType="application/zip" />
                 <data android:mimeType="application/xml" />
                 <data android:mimeType="text/xml" />
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>
+            <!-- "Öffnen mit", not "Teilen". A file just downloaded in a
+                 browser, or tapped in the Files app, arrives as VIEW with
+                 the document in `data` — a different intent entirely, and
+                 the one somebody reaches for after a download. Confined
+                 to content:// and file://, so the app never offers itself
+                 for a web link. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/csv" />
+                <data android:mimeType="text/comma-separated-values" />
+                <data android:mimeType="text/x-csv" />
+                <data android:mimeType="application/csv" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/xml" />
+                <data android:mimeType="text/xml" />
+                <data android:mimeType="application/x-ofx" />
+                <data android:mimeType="application/vnd.intu.qfx" />
+            </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />

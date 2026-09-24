@@ -61,8 +61,11 @@ class ShareActivity : FragmentActivity() {
         }
     }
 
-    /** One file or several, whichever the sending app offered. */
+    /** One file or several, whichever the sending app offered — and
+     *  the one a browser or the Files app "opens with" us, which is a
+     *  VIEW carrying the document in `data` rather than a share. */
     private fun incoming(intent: Intent?): List<Uri> = when (intent?.action) {
+        Intent.ACTION_VIEW -> listOfNotNull(intent.data)
         Intent.ACTION_SEND -> listOfNotNull(
             if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
             else @Suppress("DEPRECATION") intent.getParcelableExtra(Intent.EXTRA_STREAM))
