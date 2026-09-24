@@ -198,12 +198,54 @@ struct Cashflow: Codable {
 }
 
 /// The cheap refresh's answer: quotes and rates, no bank touched.
-struct Market: Codable {
-    struct Prices: Codable { var priced: Int?; var failed: Int?; var asOf: String? }
-    struct Rates: Codable { var latest: String?; var currencies: Int?; var error: String? }
+/// The phone only needs to know that it worked — the figures come from
+/// the snapshot read straight after — so every field here reads loosely:
+/// one of an unexpected shape is left out rather than failing the reply.
+struct Market: Decodable {
+    struct Prices: Decodable {
+        /// A security the quote server could not price, and why.
+        struct Miss: Decodable { var isin: String?; var error: String? }
+        var priced: Int?; var held: Int?
+        /// A list of misses, not a count — the shape that made the
+        /// first version of this button fail.
+        var failed: [Miss]?
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            priced = c.loose(Int.self, .priced)
+            held = c.loose(Int.self, .held)
+            failed = c.loose([Miss].self, .failed)
+        }
+        private enum CodingKeys: String, CodingKey { case priced, held, failed }
+    }
+    struct Rates: Decodable {
+        var latest: String?; var currencies: Int?; var error: String?
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            latest = c.loose(String.self, .latest)
+            currencies = c.loose(Int.self, .currencies)
+            error = c.loose(String.self, .error)
+        }
+        private enum CodingKeys: String, CodingKey { case latest, currencies, error }
+    }
     var prices: Prices?
     var rates: Rates?
     var netWorth: NetWorth?
+
+    init(from decoder: Decoder) throws {
+        // Not even an object is still a market refresh that went through.
+        guard let c = try? decoder.container(keyedBy: CodingKeys.self) else { return }
+        prices = c.loose(Prices.self, .prices)
+        rates = c.loose(Rates.self, .rates)
+        netWorth = c.loose(NetWorth.self, .netWorth)
+    }
+    private enum CodingKeys: String, CodingKey { case prices, rates, netWorth }
+}
+
+extension KeyedDecodingContainer {
+    /// The field if it is there and of the expected shape, nil otherwise.
+    func loose<T: Decodable>(_ type: T.Type, _ key: Key) -> T? {
+        (try? decodeIfPresent(type, forKey: key)) ?? nil
+    }
 }
 
 // MARK: What counts towards the figure at the top (contract rule 8)

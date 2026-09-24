@@ -371,9 +371,13 @@ data class Market(
 @Serializable
 data class PriceReport(
     val priced: Int = 0,
-    val failed: Int = 0,
-    @SerialName("as_of") val asOf: String? = null,
+    val held: Int = 0,
+    /** The securities that could not be quoted — a list, not a count. */
+    val failed: List<PriceMiss> = emptyList(),
 )
+
+@Serializable
+data class PriceMiss(val isin: String = "", val error: String? = null)
 
 @Serializable
 data class RateReport(
