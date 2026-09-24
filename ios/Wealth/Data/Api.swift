@@ -92,7 +92,14 @@ struct Api {
             let why = (try? Api.decoder.decode(ToolReply<Empty>.self, from: data))?.error
             throw Failure(status: status, message: why ?? Api.sentence(for: status))
         }
-        let reply = try Api.decoder.decode(ToolReply<T>.self, from: data)
+        let reply: ToolReply<T>
+        do {
+            reply = try Api.decoder.decode(ToolReply<T>.self, from: data)
+        } catch let bad as DecodingError {
+            // The system's own sentence names no tool and no field, which
+            // leaves nobody able to say what to fix.
+            throw Failure(status: status, message: Api.sentence(for: bad, tool: req.url?.lastPathComponent))
+        }
         guard let result = reply.result else {
             throw Failure(status: status, message: reply.error ?? "The dashboard sent nothing.")
         }
@@ -135,6 +142,22 @@ struct Api {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONEncoder().encode(args)
         return try await send(req, as: type)
+    }
+
+    /// Which answer could not be read, and where in it.
+    static func sentence(for bad: DecodingError, tool: String?) -> String {
+        let path: [CodingKey]
+        switch bad {
+        case .typeMismatch(_, let c), .valueNotFound(_, let c), .keyNotFound(_, let c), .dataCorrupted(let c):
+            path = c.codingPath
+        @unknown default:
+            path = []
+        }
+        let field = path.map { $0.intValue.map(String.init) ?? $0.stringValue }.joined(separator: ".")
+        let what = tool ?? "that call"
+        return field.isEmpty
+            ? "The dashboard's answer to \(what) is not one this app can read."
+            : "The dashboard's answer to \(what) is not one this app can read (\(field))."
     }
 
     /// The sentence for a status the dashboard gave no words for.

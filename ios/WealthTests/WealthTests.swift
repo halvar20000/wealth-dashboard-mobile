@@ -227,6 +227,30 @@ final class WealthTests: XCTestCase {
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.url?.path, "/api/v1/tools/refresh_market")
     }
+
+    // A refresh that went through is not an error because a field in its
+    // report came back in a shape the phone did not expect.
+    func testRefreshMarketToleratesOddShapes() async throws {
+        StubProtocol.reply = (200, #"{"ok": true, "result": {"prices": {"priced": "12", "as_of": 20260924}, "rates": {"latest": 20260923, "currencies": ["USD", "CHF"]}, "net_worth": 5}}"#)
+        let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
+        let market = try await api.refreshMarket()
+        XCTAssertNil(market.prices?.priced)
+        XCTAssertNil(market.rates?.currencies)
+        XCTAssertNil(market.netWorth)
+    }
+
+    // What cannot be read says which call and which field.
+    func testUnreadableAnswerNamesTheField() async throws {
+        StubProtocol.reply = (200, #"{"ok": true, "result": {"months": "many"}}"#)
+        let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
+        do {
+            _ = try await api.cashflow()
+            XCTFail("expected a failure")
+        } catch let failure as Api.Failure {
+            XCTAssertTrue(failure.message.contains("cashflow"), failure.message)
+            XCTAssertTrue(failure.message.contains("months"), failure.message)
+        }
+    }
 }
 
 /// Answers every request with one canned reply, and remembers the request.
