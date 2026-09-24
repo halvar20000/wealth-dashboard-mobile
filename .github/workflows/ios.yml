@@ -1,14 +1,20 @@
 name: Build the iOS app
 
-# A stub until there is a project under ios/. It costs nothing while
-# the folder holds only a README, and it fails loudly the day somebody
-# adds a project without finishing this file.
+# macOS minutes bill at **10×** the Linux rate against a private
+# repository's free allowance: 2 000 included minutes are 200 macOS
+# minutes, and a SwiftUI build is 3–8 of them. So nothing here starts a
+# macOS runner until it is worth it — the decision is made on Linux
+# first, where a job costs about fifteen seconds at 1×.
 #
-# Note the runner: macOS minutes bill at 10× the Linux rate against a
-# private repository's free allowance, so think before making this run
-# on every push. Tags are what matter — and remember that GitHub
-# applies `paths:` filters to tag pushes too, which is why the Android
-# workflow has none.
+# A macOS runner starts only when:
+#   • a tag is pushed (a release must always build), or
+#   • the push or pull request actually touched ios/, or
+#   • somebody asks for it by hand, or
+#   • this workflow itself changed.
+#
+# The filter lives in a job rather than in `on: paths:` on purpose:
+# GitHub applies path filters to tag pushes as well, and a tag sitting
+# on an Android-only commit would then silently skip the iOS release.
 on:
   push:
     branches: [main]
@@ -24,26 +30,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Fifteen seconds on Linux to spare ten minutes of quota on macOS.
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: check
+        run: |
+          set -e
+          if ! ls ios/*.xcodeproj ios/*.xcworkspace >/dev/null 2>&1; then
+            echo "No Xcode project under ios/ yet — nothing to build."
+            echo "build=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$GITHUB_REF_TYPE" = "tag" ] || [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "A tag or a manual run: always build."
+            echo "build=yes" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          base='${{ github.event.pull_request.base.sha || github.event.before }}'
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "No usable base to compare against — build to be safe."
+            echo "build=yes" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "$base" "$GITHUB_SHA" \
+             | grep -qE '^(ios/|\.github/workflows/ios\.yml)'; then
+            echo "ios/ changed."
+            echo "build=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing under ios/ changed — no macOS runner needed."
+            echo "build=no" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: decide
+    if: needs.decide.outputs.build == 'yes'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Is there anything to build yet?
-        id: probe
-        run: |
-          if ls ios/*.xcodeproj ios/*.xcworkspace >/dev/null 2>&1; then
-            echo "found=yes" >> "$GITHUB_OUTPUT"
-          else
-            echo "No Xcode project under ios/ — nothing to build."
-            echo "found=no" >> "$GITHUB_OUTPUT"
-          fi
+      # Half of a cold iOS build is resolving and compiling packages.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+          key: ios-${{ runner.os }}-${{ hashFiles('ios/**/Package.resolved', 'ios/**/project.pbxproj') }}
+          restore-keys: ios-${{ runner.os }}-
 
       - name: Build
-        if: steps.probe.outputs.found == 'yes'
         working-directory: ios
         run: |
           set -o pipefail
           xcodebuild -scheme Wealth -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO build | xcpretty || xcodebuild -scheme Wealth \
-            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+            CODE_SIGNING_ALLOWED=NO build
