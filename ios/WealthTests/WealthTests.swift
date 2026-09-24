@@ -218,11 +218,12 @@ final class WealthTests: XCTestCase {
 
     // Contract rule 9: the cheap refresh is a POST to refresh_market.
     func testRefreshMarketPosts() async throws {
-        StubProtocol.reply = (200, #"{"ok": true, "result": {"prices": {"priced": 12, "failed": 0}, "net_worth": {"net_worth": 5}}}"#)
+        StubProtocol.reply = (200, #"{"ok": true, "result": {"prices": {"priced": 12, "failed": [{"isin": "IE00B4L5Y983", "error": "no quote"}], "held": 13}, "rates": {"days": 1, "currencies": 30, "latest": "2026-09-23"}, "net_worth": {"base_currency": "EUR", "net_worth": 5}}}"#)
         let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
         let market = try await api.refreshMarket()
         XCTAssertEqual(market.prices?.priced, 12)
         XCTAssertEqual(market.netWorth?.total, 5)
+        XCTAssertEqual(market.prices?.failed?.first?.isin, "IE00B4L5Y983")
         let request = try XCTUnwrap(StubProtocol.lastRequest)
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.url?.path, "/api/v1/tools/refresh_market")
@@ -231,7 +232,7 @@ final class WealthTests: XCTestCase {
     // A refresh that went through is not an error because a field in its
     // report came back in a shape the phone did not expect.
     func testRefreshMarketToleratesOddShapes() async throws {
-        StubProtocol.reply = (200, #"{"ok": true, "result": {"prices": {"priced": "12", "as_of": 20260924}, "rates": {"latest": 20260923, "currencies": ["USD", "CHF"]}, "net_worth": 5}}"#)
+        StubProtocol.reply = (200, #"{"ok": true, "result": {"prices": {"priced": "12", "failed": 3}, "rates": {"latest": 20260923, "currencies": ["USD", "CHF"]}, "net_worth": 5}}"#)
         let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
         let market = try await api.refreshMarket()
         XCTAssertNil(market.prices?.priced)

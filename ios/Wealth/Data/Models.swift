@@ -203,14 +203,19 @@ struct Cashflow: Codable {
 /// one of an unexpected shape is left out rather than failing the reply.
 struct Market: Decodable {
     struct Prices: Decodable {
-        var priced: Int?; var failed: Int?; var asOf: String?
+        /// A security the quote server could not price, and why.
+        struct Miss: Decodable { var isin: String?; var error: String? }
+        var priced: Int?; var held: Int?
+        /// A list of misses, not a count — the shape that made the
+        /// first version of this button fail.
+        var failed: [Miss]?
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             priced = c.loose(Int.self, .priced)
-            failed = c.loose(Int.self, .failed)
-            asOf = c.loose(String.self, .asOf)
+            held = c.loose(Int.self, .held)
+            failed = c.loose([Miss].self, .failed)
         }
-        private enum CodingKeys: String, CodingKey { case priced, failed, asOf }
+        private enum CodingKeys: String, CodingKey { case priced, held, failed }
     }
     struct Rates: Decodable {
         var latest: String?; var currencies: Int?; var error: String?
