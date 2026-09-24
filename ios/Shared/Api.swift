@@ -129,9 +129,128 @@ struct Api {
         try await post("refresh_market", as: Market.self)
     }
 
+    // MARK: The portfolio
+
+    /// Every security held, worked out from the trades.
+    func holdings() async throws -> Holdings {
+        try await tool("holdings", as: Holdings.self)
+    }
+
+    /// The net worth on a set of days — the line on the chart.
+    func history(period: String = "1y") async throws -> History {
+        try await tool("net_worth_history", ["period": period], as: History.self)
+    }
+
+    /// Where the money sits: by asset class, by region, by bucket.
+    func allocation() async throws -> Allocation {
+        try await tool("allocation", as: Allocation.self)
+    }
+
+    /// The return of the whole portfolio and of each holding.
+    func returns() async throws -> Returns {
+        try await tool("performance", as: Returns.self)
+    }
+
+    // MARK: The triage
+
+    /// The queue of rows with no category, biggest first.
+    func uncategorised(limit: Int = 60) async throws -> Queue {
+        try await tool("uncategorised", ["limit": String(limit)], as: Queue.self)
+    }
+
+    /// Every category, for the sheet of choices. The tool answers with a
+    /// bare list.
+    func categories() async throws -> [Category] {
+        try await tool("categories", as: [Category].self)
+    }
+
+    /// The spending nobody has claimed yet (dashboard ≥ 0.72.4).
+    func unowned(limit: Int = 60) async throws -> Queue {
+        try await tool("unowned_spending", ["limit": String(limit)], as: Queue.self)
+    }
+
+    /// The household, for "whose spending is this".
+    func people() async throws -> [Person] {
+        try await tool("people", as: PeopleList.self).people ?? []
+    }
+
+    /// One decision. The dashboard files the row and, where the verdict
+    /// says so, remembers it as a rule for the next one like it.
+    func deliver(_ verdict: Verdict) async throws {
+        if let category = verdict.category {
+            var args: [String: Any] = ["txn_id": verdict.txnId, "category": category,
+                                       "remember": verdict.remember]
+            if let pattern = verdict.pattern?.trimmingCharacters(in: .whitespaces), !pattern.isEmpty {
+                args["pattern"] = pattern
+            }
+            _ = try await post("set_category", args, as: Ignored.self)
+        }
+        if let owner = verdict.owner {
+            // The same switch as the category: "this row only" must mean
+            // this row only, whichever queue the thumb was in.
+            _ = try await post("set_owner", ["txn_id": verdict.txnId, "owner": owner,
+                                             "remember": verdict.remember], as: Ignored.self)
+        }
+    }
+
+    // MARK: A statement into an account
+
+    /// A file on its way to the dashboard: its name, its type, its bytes.
+    struct Upload {
+        var name: String
+        var mime: String?
+        var data: Data
+    }
+
+    /// A statement into an account, as the import page takes it: the
+    /// field name is `file`, several at once are allowed, and the
+    /// dashboard answers with the report it would have shown on screen.
+    func importFiles(accountId: Int, files: [Upload]) async throws -> ImportReply {
+        guard !files.isEmpty else { throw Failure(status: 0, message: "Nothing to send.") }
+        guard let url = URL(string: baseURL + "/api/v1/accounts/\(accountId)/import") else {
+            throw Failure(status: 0, message: "That address is not a URL.")
+        }
+        let boundary = "wealth-" + UUID().uuidString
+        var body = Data()
+        for file in files {
+            let name = file.name.replacingOccurrences(of: "\"", with: "'")
+            body.append(Data("--\(boundary)\r\n".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"\(name)\"\r\n".utf8))
+            body.append(Data("Content-Type: \(file.mime ?? "application/octet-stream")\r\n\r\n".utf8))
+            body.append(file.data)
+            body.append(Data("\r\n".utf8))
+        }
+        body.append(Data("--\(boundary)--\r\n".utf8))
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 120
+        req.setValue("Bearer \(token ?? "")", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+
+        let (data, response) = try await session.data(for: req)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let reply = try? Api.decoder.decode(ImportReply.self, from: data)
+        guard (200..<300).contains(status), let reply, reply.ok != false else {
+            throw Failure(status: status, message: reply?.error ?? Api.sentence(for: status))
+        }
+        return reply
+    }
+
+    /// An answer whose content does not matter, only that it came.
+    struct Ignored: Decodable {
+        init(from decoder: Decoder) throws {}
+    }
+
     /// One tool, called with POST and a JSON object of arguments — what a
     /// write wants.
-    func post<T: Decodable>(_ name: String, _ args: [String: String] = [:], as type: T.Type) async throws -> T {
+    ///
+    /// Numbers and booleans go as JSON numbers and booleans, never as
+    /// text: the dashboard reads `remember: "false"` as a non-empty
+    /// string, which Python counts as true.
+    func post<T: Decodable>(_ name: String, _ args: [String: Any] = [:], as type: T.Type) async throws -> T {
         guard let url = URL(string: baseURL + "/api/v1/tools/" + name) else {
             throw Failure(status: 0, message: "That address is not a URL.")
         }
@@ -140,7 +259,7 @@ struct Api {
         req.setValue("Bearer \(token ?? "")", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONEncoder().encode(args)
+        req.httpBody = try JSONSerialization.data(withJSONObject: args, options: [.sortedKeys])
         return try await send(req, as: type)
     }
 

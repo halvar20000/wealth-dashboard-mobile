@@ -252,12 +252,125 @@ final class WealthTests: XCTestCase {
             XCTAssertTrue(failure.message.contains("months"), failure.message)
         }
     }
+
+    // MARK: The portfolio
+
+    func testHoldingsDecode() throws {
+        let json = #"{"base_currency": "EUR", "prices_as_of": "2026-09-23", "holdings": [{"isin": "IE00B4L5Y983", "name": "World", "quantity": 12.5, "net_invested": 1000, "price": 100.5, "price_kind": "market", "value": 1256.25, "value_base": 1256.25, "accounts": ["Depot"], "incomplete_history": false, "last_price": 99}]}"#
+        let held = try Api.decoder.decode(Holdings.self, from: Data(json.utf8))
+        let h = try XCTUnwrap(held.holdings?.first)
+        XCTAssertEqual(h.netInvested, 1000)
+        XCTAssertEqual(h.gain, 256.25, accuracy: 0.001)
+        XCTAssertEqual(h.id, "IE00B4L5Y983")
+    }
+
+    // The decoder turns dictionary keys to camelCase too: `asset_class`
+    // must still be found, and ISINs and "1y" must survive untouched.
+    func testAllocationAndReturnsKeys() throws {
+        let ring = #"{"total": 100, "cash": 10, "dimensions": {"asset_class": {"has_targets": false, "rows": [{"key": "real_estate", "value": 60, "share": 60.0, "target": null, "drift": null, "gap": null}]}, "region": {"rows": []}}}"#
+        let allocation = try Api.decoder.decode(Allocation.self, from: Data(ring.utf8))
+        XCTAssertEqual(allocation.byClass.first?.key, "real_estate")
+        XCTAssertEqual(allocation.byClass.first?.share, 60)
+
+        let perf = #"{"all": {"twr": 0.12, "twr_annual": 0.04, "mwr": 0.05, "days": 900, "since": "2024-01-02"}, "ytd": {"twr": 0.03}, "1y": {"twr": 0.07}, "holdings": {"IE00B4L5Y983": {"name": "World", "twr": 0.2}}}"#
+        let returns = try Api.decoder.decode(Returns.self, from: Data(perf.utf8))
+        XCTAssertEqual(returns.year?.twr, 0.07)
+        XCTAssertEqual(returns.all?.twrAnnual, 0.04)
+        XCTAssertEqual(returns.holdings?["IE00B4L5Y983"]?.twr, 0.2)
+    }
+
+    func testHistoryLineSkipsEmptyDays() throws {
+        let json = #"{"period": "1y", "points": [{"date": "2026-01-01", "net_worth": 1}, {"date": "2026-01-02", "net_worth": null}, {"date": "2026-01-03", "net_worth": 3}], "first_date": "2024-05-01", "start": {"date": "2026-01-01", "net_worth": 1}}"#
+        let history = try Api.decoder.decode(History.self, from: Data(json.utf8))
+        XCTAssertEqual(history.line, [1, 3])
+    }
+
+    // MARK: The triage
+
+    func testQueueAndCategoriesDecode() throws {
+        let queue = #"{"remaining": 140, "transactions": [{"id": 7, "account_id": 2, "account_name": "Giro", "txn_date": "2026-09-20", "description": "TENMANYA BERLIN", "counterparty": null, "amount": -23.5, "currency": "EUR", "kind": "card", "suggestion": "restaurants", "pattern": "Tenmanya"}]}"#
+        let q = try Api.decoder.decode(Queue.self, from: Data(queue.utf8))
+        XCTAssertEqual(q.transactions?.first?.pattern, "Tenmanya")
+        XCTAssertEqual(q.remaining, 140)
+
+        let list = #"[{"slug": "restaurants", "label": "Restaurants", "group": "spending", "colour": "#f59e0b", "transactions": 31, "rules": 4, "deletable": true, "group_locked": false}]"#
+        let categories = try Api.decoder.decode([Category].self, from: Data(list.utf8))
+        XCTAssertEqual(categories.first?.title, "Restaurants")
+    }
+
+    // `remember` must go as a JSON boolean: the dashboard is Python, and
+    // the string "false" is true there.
+    func testVerdictGoesAsJSONTypes() async throws {
+        StubProtocol.reply = (200, #"{"ok": true, "result": {"txn_id": 7, "category": "other", "rule": null, "applied": 0}}"#)
+        let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
+        try await api.deliver(Verdict(txnId: 7, category: "other", pattern: " Tenmanya ", remember: false))
+        XCTAssertEqual(StubProtocol.lastRequest?.url?.path, "/api/v1/tools/set_category")
+        let body = try XCTUnwrap(StubProtocol.lastBody)
+        let sent = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(sent["txn_id"] as? Int, 7)
+        XCTAssertEqual(sent["pattern"] as? String, "Tenmanya")
+        XCTAssertTrue((sent["remember"] as? NSNumber).map { CFGetTypeID($0) == CFBooleanGetTypeID() } ?? false)
+        XCTAssertEqual(sent["remember"] as? Bool, false)
+    }
+
+    func testPendingVerdictsSurviveInOrder() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = Store(service: "test." + UUID().uuidString, directory: dir)
+        store.queue(Verdict(txnId: 1, category: "food"))
+        store.queue(Verdict(txnId: 2, owner: "shared"))
+        let again = Store(service: "test.other", directory: dir).pending()
+        XCTAssertEqual(again.map(\.txnId), [1, 2])
+        XCTAssertEqual(again.last?.owner, "shared")
+        store.savePending([])
+        XCTAssertTrue(store.pending().isEmpty)
+    }
+
+    // MARK: The share sheet and the background round
+
+    func testImportSendsMultipartAndReadsTheReport() async throws {
+        StubProtocol.reply = (200, #"{"ok": true, "account": {"id": 3, "name": "Giro"}, "result": {"label": "ING CSV", "inserted": 12, "duplicates": 40, "skipped": 0, "parsed": 52, "problems": [], "notes": ["Two rows kept out."], "closing_balance": 10.5, "unrecognised": [], "imports": [1]}}"#)
+        let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
+        let reply = try await api.importFiles(accountId: 3, files: [Api.Upload(name: "a.csv", mime: "text/csv", data: Data("x;y".utf8))])
+        XCTAssertEqual(reply.result?.inserted, 12)
+        XCTAssertEqual(reply.result?.notes, ["Two rows kept out."])
+        XCTAssertEqual(reply.account?.name, "Giro")
+        XCTAssertEqual(StubProtocol.lastRequest?.url?.path, "/api/v1/accounts/3/import")
+        let body = String(decoding: try XCTUnwrap(StubProtocol.lastBody), as: UTF8.self)
+        XCTAssertTrue(body.contains(#"name="file"; filename="a.csv""#), body)
+    }
+
+    func testImportRefusalCarriesTheSentence() async {
+        StubProtocol.reply = (422, #"{"ok": false, "error": "No reader recognised any of those files.", "files": ["a.pdf"]}"#)
+        let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
+        do {
+            _ = try await api.importFiles(accountId: 3, files: [Api.Upload(name: "a.pdf", data: Data([1]))])
+            XCTFail("expected a failure")
+        } catch {
+            XCTAssertEqual(error as? Api.Failure, Api.Failure(status: 422, message: "No reader recognised any of those files."))
+        }
+    }
+
+    // Money about to run out outranks a stopped link, which outranks a
+    // long queue; a short queue is no news at all.
+    func testNoticeOrder() {
+        var s = Snapshot()
+        s.waiting = Waiting(uncategorised: 4, unassignedSpending: 3)
+        XCTAssertNil(Round.pick(s))
+        s.waiting = Waiting(uncategorised: 25, unassignedSpending: 0)
+        XCTAssertEqual(Round.pick(s)?.key, "queue:2")
+        s.sync = SyncHealth(links: 3, red: 1)
+        XCTAssertEqual(Round.pick(s)?.key, "red:1")
+        s.upcoming = Upcoming(belowZero: Event(date: "2026-10-01", name: "Rent", amount: -900, account: "Giro", running: -120))
+        XCTAssertEqual(Round.pick(s)?.key, "below:2026-10-01")
+    }
 }
 
 /// Answers every request with one canned reply, and remembers the request.
 final class StubProtocol: URLProtocol {
     nonisolated(unsafe) static var reply: (Int, String) = (200, "{}")
     nonisolated(unsafe) static var lastRequest: URLRequest?
+    /// A request's body arrives here as a stream, not as `httpBody`.
+    nonisolated(unsafe) static var lastBody: Data?
 
     static let session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
@@ -270,6 +383,18 @@ final class StubProtocol: URLProtocol {
 
     override func startLoading() {
         StubProtocol.lastRequest = request
+        StubProtocol.lastBody = request.httpBody ?? request.httpBodyStream.map { stream in
+            stream.open()
+            defer { stream.close() }
+            var data = Data()
+            var buffer = [UInt8](repeating: 0, count: 4096)
+            while stream.hasBytesAvailable {
+                let n = stream.read(&buffer, maxLength: buffer.count)
+                if n <= 0 { break }
+                data.append(buffer, count: n)
+            }
+            return data
+        }
         let (status, body) = StubProtocol.reply
         let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1",
                                        headerFields: ["Content-Type": "application/json"])!

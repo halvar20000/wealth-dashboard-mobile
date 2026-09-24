@@ -276,3 +276,200 @@ enum DashboardVersion {
         return true
     }
 }
+
+// MARK: The portfolio
+//
+// Four calls make the page: what is held, where the money sits, how it
+// has done, and the line of the net worth over time.
+
+/// One security, as the trades add up to it.
+struct Holding: Codable, Identifiable, Hashable {
+    var isin: String?
+    var name: String?
+    var symbol: String?
+    var currency: String?
+    var quantity: Double?
+    var netInvested: Double?
+    var price: Double?
+    var priceAsOf: String?
+    /// "market" for a quote, "trade" when the last trade's price stands in.
+    var priceKind: String?
+    var lastTrade: String?
+    var value: Double?
+    var valueBase: Double?
+    var accounts: [String]?
+    var incompleteHistory: Bool?
+
+    var id: String { isin ?? name ?? "" }
+    var title: String { name ?? isin ?? "—" }
+    /// What it is worth now less what went in — the money answer, next
+    /// to the percentage one the return gives.
+    var gain: Double { (valueBase ?? 0) - (netInvested ?? 0) }
+}
+
+struct Holdings: Codable {
+    var baseCurrency: String?
+    var pricesAsOf: String?
+    var holdings: [Holding]?
+}
+
+struct HistoryPoint: Codable, Hashable {
+    var date: String?
+    var netWorth: Double?
+}
+
+struct History: Codable {
+    var baseCurrency: String?
+    var period: String?
+    var firstDate: String?
+    var points: [HistoryPoint]?
+
+    /// The line, without the days nothing was recorded for.
+    var line: [Double] { (points ?? []).compactMap(\.netWorth) }
+}
+
+struct AllocationRow: Codable, Hashable {
+    var key: String?
+    var value: Double?
+    /// A percentage, 0 to 100 — not a fraction.
+    var share: Double?
+    var target: Double?
+    var drift: Double?
+}
+
+struct Dimension: Codable {
+    var hasTargets: Bool?
+    var rows: [AllocationRow]?
+}
+
+struct Allocation: Codable {
+    var total: Double?
+    var cash: Double?
+    var dimensions: [String: Dimension]?
+
+    /// By asset class. The decoder turns dictionary keys to camelCase
+    /// too, so the dashboard's `asset_class` arrives as `assetClass`.
+    var byClass: [AllocationRow] {
+        (dimensions?["assetClass"] ?? dimensions?["asset_class"])?.rows ?? []
+    }
+}
+
+/// The return tool: the whole portfolio over three windows, and one
+/// entry per holding under its ISIN.
+struct Returns: Codable {
+    var all: Period?
+    var ytd: Period?
+    var year: Period?
+    var holdings: [String: Period]?
+
+    private enum CodingKeys: String, CodingKey {
+        case all, ytd, year = "1y", holdings
+    }
+}
+
+// MARK: The triage
+//
+// Two queues, one shape: a row waiting for a category, and a row waiting
+// for a person.
+
+struct Queue: Codable {
+    var remaining: Int?
+    var transactions: [QueueRow]?
+}
+
+struct QueueRow: Codable, Identifiable, Hashable {
+    var id: Int
+    var accountId: Int?
+    var accountName: String?
+    var txnDate: String?
+    var description: String?
+    var counterparty: String?
+    var amount: Double?
+    var currency: String?
+    var kind: String?
+    /// What the dashboard would file it under, if it had to guess.
+    var suggestion: String?
+    /// The words a rule would remember it by — shown, because a rule
+    /// made from the wrong words is the mistake that repeats itself.
+    var pattern: String?
+    /// In the "whose" queue: the category it already has.
+    var category: String?
+    var label: String?
+
+    var headline: String {
+        let text = (description ?? "").trimmingCharacters(in: .whitespaces)
+        if !text.isEmpty { return String(text.prefix(90)) }
+        return counterparty ?? "—"
+    }
+}
+
+/// A category as the dashboard knows it, for the sheet of choices.
+struct Category: Codable, Identifiable, Hashable {
+    var slug: String
+    var label: String?
+    var group: String?
+    var colour: String?
+    /// How many rows carry it — the sheet puts the used ones first.
+    var transactions: Int?
+
+    var id: String { slug }
+    var title: String { label ?? slug }
+}
+
+/// One of the household, for "whose spending is this".
+struct Person: Codable, Identifiable, Hashable {
+    var id: Int
+    var name: String?
+}
+
+struct PeopleList: Codable {
+    var people: [Person]?
+}
+
+/// A decision taken on the phone, kept until the dashboard has it
+/// (contract rule 2). `owner` is a person's id as text, or "shared".
+struct Verdict: Codable, Equatable {
+    var txnId: Int
+    var category: String?
+    var pattern: String?
+    var remember: Bool = true
+    var owner: String?
+    var at: Date = Date()
+}
+
+// MARK: A statement into an account
+
+/// What an import answered: the account it went into, and what the
+/// dashboard's readers made of the file.
+struct ImportReply: Decodable {
+    struct Target: Decodable { var id: Int?; var name: String? }
+    struct Report: Decodable {
+        var label: String?
+        var inserted: Int?
+        var duplicates: Int?
+        var skipped: Int?
+        var parsed: Int?
+        /// The dashboard's own sentences — a scan, rows kept out. Read
+        /// loosely: they are shown, never relied on.
+        var problems: [String]?
+        var notes: [String]?
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            label = c.loose(String.self, .label)
+            inserted = c.loose(Int.self, .inserted)
+            duplicates = c.loose(Int.self, .duplicates)
+            skipped = c.loose(Int.self, .skipped)
+            parsed = c.loose(Int.self, .parsed)
+            problems = c.loose([String].self, .problems)
+            notes = c.loose([String].self, .notes)
+        }
+        private enum CodingKeys: String, CodingKey {
+            case label, inserted, duplicates, skipped, parsed, problems, notes
+        }
+    }
+    var ok: Bool?
+    var account: Target?
+    var result: Report?
+    var error: String?
+}

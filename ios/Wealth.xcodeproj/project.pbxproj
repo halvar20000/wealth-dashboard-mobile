@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C042760B539CD00D61BFB8AD /* WealthWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 09BEDA4549F0B90DE3F378C8 /* WealthWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2769CC76B1961CCA6A47EBD7 /* WealthShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A163ACFCC162E967EDC0CA56 /* WealthShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		431387EB7262E1CFC79B125E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -14,11 +19,42 @@
 			remoteGlobalIDString = 6439CF22188FA14BBD363342;
 			remoteInfo = Wealth;
 		};
+		52E06796E5DC1E909AC87155 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BDF3C6B057FDDEDE11907AB4;
+			remoteInfo = WealthWidget;
+		};
+		6D955D36E8B11D859368D724 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4828F91728EAD29C279121F0;
+			remoteInfo = WealthShare;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7ADBC540C602EA2D57EFE9A4 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C042760B539CD00D61BFB8AD /* WealthWidget.appex in Embed Foundation Extensions */,
+				2769CC76B1961CCA6A47EBD7 /* WealthShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		7BCCADA3021C07D12E775CB5 /* Wealth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wealth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		195F9293022CEE80C9E8D0C0 /* WealthTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WealthTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		09BEDA4549F0B90DE3F378C8 /* WealthWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WealthWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A163ACFCC162E967EDC0CA56 /* WealthShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WealthShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -30,6 +66,21 @@
 		8F31C73D90E2A9A9741F91EE /* WealthTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = WealthTests;
+			sourceTree = "<group>";
+		};
+		F52AE670D12598AB21C18F0B /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		D24D598BFCAB06D2813DD386 /* WealthWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WealthWidget;
+			sourceTree = "<group>";
+		};
+		E84A287B89A1AA13C0F22FA8 /* WealthShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WealthShare;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -49,6 +100,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		932341BFC01F9319948AA66C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D3E58EF946BA00FCF0C8A4E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -56,6 +121,9 @@
 			isa = PBXGroup;
 			children = (
 				095FEE2E633C50D24407F2D6 /* Wealth */,
+				F52AE670D12598AB21C18F0B /* Shared */,
+				D24D598BFCAB06D2813DD386 /* WealthWidget */,
+				E84A287B89A1AA13C0F22FA8 /* WealthShare */,
 				8F31C73D90E2A9A9741F91EE /* WealthTests */,
 				86024CAD1E83101D97359D73 /* Products */,
 			);
@@ -66,6 +134,8 @@
 			children = (
 				7BCCADA3021C07D12E775CB5 /* Wealth.app */,
 				195F9293022CEE80C9E8D0C0 /* WealthTests.xctest */,
+				09BEDA4549F0B90DE3F378C8 /* WealthWidget.appex */,
+				A163ACFCC162E967EDC0CA56 /* WealthShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,13 +150,17 @@
 				0F2A33C9B352E389BDBCF3E8 /* Sources */,
 				F4BF190A585A2F3C168DAF2D /* Frameworks */,
 				291A891547850556A1912B92 /* Resources */,
+				7ADBC540C602EA2D57EFE9A4 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				8857CC836A6B905E4B275CC5 /* PBXTargetDependency */,
+				B4873EA62D22463AB41271D4 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				095FEE2E633C50D24407F2D6 /* Wealth */,
+				F52AE670D12598AB21C18F0B /* Shared */,
 			);
 			name = Wealth;
 			packageProductDependencies = (
@@ -118,6 +192,52 @@
 			productReference = 195F9293022CEE80C9E8D0C0 /* WealthTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		BDF3C6B057FDDEDE11907AB4 /* WealthWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6AB38FA79E203B02441301E5 /* Build configuration list for PBXNativeTarget "WealthWidget" */;
+			buildPhases = (
+				465F0DE6449938003ECF26D4 /* Sources */,
+				932341BFC01F9319948AA66C /* Frameworks */,
+				EFFB7C1ABA238A9FDC79ED49 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D24D598BFCAB06D2813DD386 /* WealthWidget */,
+				F52AE670D12598AB21C18F0B /* Shared */,
+			);
+			name = WealthWidget;
+			packageProductDependencies = (
+			);
+			productName = WealthWidget;
+			productReference = 09BEDA4549F0B90DE3F378C8 /* WealthWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		4828F91728EAD29C279121F0 /* WealthShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CFEEE2C7A86B823D7B75891A /* Build configuration list for PBXNativeTarget "WealthShare" */;
+			buildPhases = (
+				CFDC68E7D4E51B31A9A6713B /* Sources */,
+				7D3E58EF946BA00FCF0C8A4E /* Frameworks */,
+				F9BE3CCB5033441AC8B010E0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E84A287B89A1AA13C0F22FA8 /* WealthShare */,
+				F52AE670D12598AB21C18F0B /* Shared */,
+			);
+			name = WealthShare;
+			packageProductDependencies = (
+			);
+			productName = WealthShare;
+			productReference = A163ACFCC162E967EDC0CA56 /* WealthShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -134,6 +254,12 @@
 					BA128F9D3C0D15FFB32AEEA8 = {
 						CreatedOnToolsVersion = 16.0;
 						TestTargetID = 6439CF22188FA14BBD363342;
+					};
+					BDF3C6B057FDDEDE11907AB4 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					4828F91728EAD29C279121F0 = {
+						CreatedOnToolsVersion = 16.0;
 					};
 				};
 			};
@@ -153,6 +279,8 @@
 			targets = (
 				6439CF22188FA14BBD363342 /* Wealth */,
 				BA128F9D3C0D15FFB32AEEA8 /* WealthTests */,
+				BDF3C6B057FDDEDE11907AB4 /* WealthWidget */,
+				4828F91728EAD29C279121F0 /* WealthShare */,
 			);
 		};
 /* End PBXProject section */
@@ -166,6 +294,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		71A5C11BC8BA4B479D978385 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EFFB7C1ABA238A9FDC79ED49 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F9BE3CCB5033441AC8B010E0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -189,6 +331,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		465F0DE6449938003ECF26D4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFDC68E7D4E51B31A9A6713B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -196,6 +352,16 @@
 			isa = PBXTargetDependency;
 			target = 6439CF22188FA14BBD363342 /* Wealth */;
 			targetProxy = 431387EB7262E1CFC79B125E /* PBXContainerItemProxy */;
+		};
+		8857CC836A6B905E4B275CC5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BDF3C6B057FDDEDE11907AB4 /* WealthWidget */;
+			targetProxy = 52E06796E5DC1E909AC87155 /* PBXContainerItemProxy */;
+		};
+		B4873EA62D22463AB41271D4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4828F91728EAD29C279121F0 /* WealthShare */;
+			targetProxy = 6D955D36E8B11D859368D724 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -324,6 +490,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Wealth.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -354,6 +521,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Wealth.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -415,6 +583,110 @@
 			};
 			name = Release;
 		};
+		EF11D2BB0FB39E0B207626A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Wealth.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "WealthWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Wealth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.herbrig.wealthdashboard.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5549812296C7B0E2D5391A03 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Wealth.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "WealthWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Wealth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.herbrig.wealthdashboard.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		3CC915E380D461807490765A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Wealth.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "WealthShare-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Wealth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.herbrig.wealthdashboard.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		496902B6A5F9065CD446CE64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Wealth.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "WealthShare-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Wealth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.herbrig.wealthdashboard.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -441,6 +713,24 @@
 			buildConfigurations = (
 				7CB61F3D2D3B2A7FBA3915B0 /* Debug */,
 				C3B1D3E1EA0DF0CA96EE4015 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6AB38FA79E203B02441301E5 /* Build configuration list for PBXNativeTarget "WealthWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EF11D2BB0FB39E0B207626A8 /* Debug */,
+				5549812296C7B0E2D5391A03 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CFEEE2C7A86B823D7B75891A /* Build configuration list for PBXNativeTarget "WealthShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3CC915E380D461807490765A /* Debug */,
+				496902B6A5F9065CD446CE64 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

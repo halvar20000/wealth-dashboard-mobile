@@ -16,6 +16,36 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>To reach the Wealth Dashboard you run on your own network.</string>
 
+	<!-- The phone's own lock, borrowed when "Ask to unlock" is on. -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>To keep the figures behind the phone's own lock.</string>
+
+	<!-- Long-press on the icon: straight into the triage. -->
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>fr.smarthomeworld.wealth.triage</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Triage</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>Sort what is waiting</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>rectangle.stack</string>
+		</dict>
+	</array>
+
+	<!-- The background round (Round.swift): a refresh every few hours,
+	     when iOS allows, and only when switched on in Settings. -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>fr.smarthomeworld.wealth.round</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
+
 	<!-- Only the system's own TLS: no export-compliance question on every
 	     TestFlight upload. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
