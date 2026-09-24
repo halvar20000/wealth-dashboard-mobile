@@ -56,11 +56,12 @@ final class ShareViewController: UIViewController {
         let type = provider.registeredTypeIdentifiers
             .compactMap { UTType($0) }
             .first { $0.conforms(to: .data) } ?? .data
+        let suggested = provider.suggestedName
         return await withCheckedContinuation { done in
             _ = provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, _ in
                 // The URL is gone when this closure returns: read it now.
                 guard let url, let data = try? Data(contentsOf: url) else { return done.resume(returning: nil) }
-                let name = provider.suggestedName.map { name in
+                let name = suggested.map { name in
                     url.pathExtension.isEmpty || name.hasSuffix("." + url.pathExtension)
                         ? name : name + "." + url.pathExtension
                 } ?? url.lastPathComponent
