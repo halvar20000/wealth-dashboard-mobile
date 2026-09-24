@@ -1,11 +1,17 @@
 package fr.smarthomeworld.wealth.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,9 +21,11 @@ import androidx.compose.ui.unit.sp
 import fr.smarthomeworld.wealth.data.Period
 import fr.smarthomeworld.wealth.data.Snapshot
 
+// Short on purpose: eight of these sit four to a row on a phone, and
+// the long form pushed the last two off the screen.
 private val PERIODS = listOf(
-    "1d" to "1 day", "1w" to "1 week", "1m" to "1 month", "3m" to "3 months",
-    "ytd" to "YTD", "1y" to "1 year", "3y" to "3 years", "all" to "Since start",
+    "1d" to "1 T", "1w" to "1 W", "1m" to "1 M", "3m" to "3 M",
+    "ytd" to "YTD", "1y" to "1 J", "3y" to "3 J", "all" to "Start",
 )
 
 @Composable
@@ -29,10 +37,20 @@ fun OverviewScreen(
     /** The net worth over the last year, for the line under the figure.
      *  Empty until it has been fetched — the page works without it. */
     history: List<Double> = emptyList(),
+    /** Asset classes the user has unticked; the figure leaves them out. */
+    excluded: Set<String> = emptySet(),
+    onToggleClass: (String) -> Unit = {},
     onAccounts: () -> Unit,
     onTransactions: () -> Unit,
 ) {
     val ccy = snapshot.baseCurrency
+    val left = snapshot.netWorth.byClass.filter { it.name !in excluded }
+    val dropped = snapshot.netWorth.byClass.filter { it.name in excluded }
+    // With nothing unticked the dashboard's own figure is shown, not a
+    // sum of the classes: the two can differ by a rounding, and the
+    // number on the phone must match the number in the browser.
+    val shown = if (dropped.isEmpty()) snapshot.netWorth.total
+                else left.sumOf { it.value }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -43,9 +61,16 @@ fun OverviewScreen(
                 Text("NET WORTH", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 2.sp)
                 Text(
-                    Fmt.money(snapshot.netWorth.total, ccy),
+                    Fmt.money(shown, ccy),
                     fontSize = 40.sp, fontWeight = FontWeight.ExtraBold,
                 )
+                if (dropped.isNotEmpty()) {
+                    Text(
+                        "ohne " + dropped.joinToString(", ") { it.name } +
+                            " · mit allem " + Fmt.money(snapshot.netWorth.total, ccy),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 val parts = listOfNotNull(
                     snapshot.netWorth.cash?.let { "Cash ${Fmt.money(it, ccy)}" },
                     snapshot.netWorth.securities?.let { "Securities ${Fmt.money(it, ccy)}" },
@@ -78,45 +103,68 @@ fun OverviewScreen(
 
         item { Section("Performance") }
         item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(PERIODS.filter { snapshot.performance[it.first] != null }) { (key, label) ->
-                    PerfTile(label, snapshot.performance.getValue(key), ccy)
+            // Two rows of four rather than a queue that scrolls off the
+            // screen: the whole point of these eight is comparing them.
+            val windows = PERIODS.filter { snapshot.performance[it.first] != null }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                windows.chunked(4).forEach { row ->
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        row.forEach { (key, label) ->
+                            Box(Modifier.weight(1f)) {
+                                PerfTile(label, snapshot.performance.getValue(key), ccy)
+                            }
+                        }
+                        repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
                 }
             }
         }
 
         if (snapshot.netWorth.byClass.isNotEmpty()) {
-            item { Section("By class") }
+            item {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    Section("Was zählt mit")
+                    if (dropped.isNotEmpty()) {
+                        TextButton(onClick = { dropped.forEach { onToggleClass(it.name) } }) {
+                            Text("alles")
+                        }
+                    }
+                }
+            }
             items(snapshot.netWorth.byClass) { c ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(c.name, style = MaterialTheme.typography.bodyMedium)
+                Row(
+                    Modifier.fillMaxWidth().clickable { onToggleClass(c.name) },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = c.name !in excluded, onCheckedChange = { onToggleClass(c.name) })
+                    Text(c.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                        color = if (c.name in excluded) MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSurface)
                     Text(Fmt.money(c.value, ccy), style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold)
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (c.name in excluded) MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
 
         snapshot.upcoming?.let { up ->
-            item { Section("Next ${up.days} days") }
             item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Cash now", style = MaterialTheme.typography.bodyMedium)
-                            Text(Fmt.money(up.starting, ccy), fontWeight = FontWeight.SemiBold)
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("After what is due", style = MaterialTheme.typography.bodyMedium)
-                            Text(Fmt.money(up.ending, ccy), fontWeight = FontWeight.SemiBold)
-                        }
-                        up.lowest?.let {
-                            Text(
-                                "Lowest ${Fmt.money(it.running, ccy)} on ${Fmt.day(it.date)} — ${it.name}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if ((it.running ?: 0.0) < 0) Loss else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                Column {
+                    Section("Nächste ${up.days} Tage")
+                    // One line of context, not a card: what is due is the
+                    // list below, and the only figure worth carrying over
+                    // it is what is left once it has all gone out.
+                    Text(
+                        "Bargeld jetzt ${Fmt.money(up.starting, ccy)} → danach ${Fmt.money(up.ending, ccy)}"
+                            + (up.belowZero?.let { " · unter null am ${Fmt.day(it.date)}" } ?: ""),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (up.belowZero != null) Loss
+                                else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (snapshot.events.isNotEmpty()) {
@@ -169,13 +217,14 @@ private fun PerfTile(label: String, p: Period, currency: String) {
         p.twr < 0 -> Loss
         else -> MaterialTheme.colorScheme.onSurface
     }
-    Card(Modifier.width(126.dp)) {
-        Column(Modifier.padding(12.dp)) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(Fmt.percent(p.twr), color = colour, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-            Text(Fmt.signedMoney(p.pnl, currency), style = MaterialTheme.typography.bodySmall,
-                color = colour.copy(alpha = 0.85f))
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Text(Fmt.percent(p.twr), color = colour, fontWeight = FontWeight.ExtraBold,
+                fontSize = 15.sp, maxLines = 1)
+            Text(Fmt.signedMoney(p.pnl, currency), style = MaterialTheme.typography.labelSmall,
+                color = colour.copy(alpha = 0.85f), maxLines = 1)
         }
     }
 }

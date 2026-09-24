@@ -75,6 +75,8 @@ is the authority; the table below is what the clients actually use.
 | `people` / `unowned_spending` | the household; the spending nobody claimed | the "whose" stack (dashboard ≥ 0.72.4) |
 | `set_owner` | files a row to a person id or `"shared"` | a swipe |
 | `apply_rules` | re-runs every rule over everything (dashboard ≥ 0.72.6) | after a fix |
+| `cashflow` | income, spending and investment per month, the categories behind them, the average (dashboard ≥ 0.73.0) | the cash-flow page |
+| `refresh_market` | quotes every holding again and refetches the ECB rates — no bank touched — and answers with the fresh net worth (dashboard ≥ 0.73.0) | the "did the markets move" button |
 
 Import from the share sheet is not a tool but its own endpoint:
 
@@ -113,6 +115,14 @@ one of them is wrong.
    `snapshot` says what is there.
 7. **Green is a gain, red is a loss**, and the same six windows appear
    in the same order everywhere: 1 M, 3 M, 6 M, YTD, 1 Y, all.
+8. **What the figure at the top leaves out is the viewer's choice, and
+   the phone's alone.** The dashboard has no opinion about whether a
+   house counts; the client keeps the unticked classes locally and says
+   what the total would be with everything in.
+9. **Two refreshes, never confused.** `refresh_market` is quotes and
+   rates and costs seconds; a bank sync is the dashboard's own job and
+   costs minutes. A phone offers the first and does not pretend to
+   offer the second.
 
 ## Versions
 

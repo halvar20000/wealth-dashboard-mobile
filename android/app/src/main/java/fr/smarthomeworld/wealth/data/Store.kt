@@ -96,5 +96,17 @@ class Store(context: Context) {
         get() = prefs.getString("last_notice", null)
         set(value) = prefs.edit().putString("last_notice", value).apply()
 
+    /**
+     * The asset classes left out of the figure at the top — a house is
+     * worth what it is worth, and somebody who wants to know what they
+     * could actually spend does not want it counted. The dashboard
+     * keeps no opinion about this; it is the phone's own view, and it
+     * survives a restart because retyping it every morning would be
+     * worse than not having it.
+     */
+    var excludedClasses: Set<String>
+        get() = prefs.getStringSet("excluded_classes", emptySet()).orEmpty()
+        set(value) = prefs.edit().putStringSet("excluded_classes", value).apply()
+
     fun api(): Api = Api(baseUrl.orEmpty(), token)
 }

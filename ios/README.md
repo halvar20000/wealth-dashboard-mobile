@@ -24,7 +24,9 @@ similar. What it does, and the nearest platform equivalent:
 | WorkManager, a round every three hours | `BGAppRefreshTask` |
 | Share sheet → `POST /accounts/{id}/import` | Share Extension, same endpoint |
 | `BiometricPrompt` | `LocalAuthentication` |
-| C## Opening it
+| Charts on a `Canvas`, ~50 lines | SwiftUI `Path`, or Swift Charts if it earns its place |
+
+## Opening it
 
 `ios/Wealth.xcodeproj`, Xcode 16 or newer, iOS 17 and up. No packages,
 no CocoaPods. The folders `Wealth/` and `WealthTests/` are synchronised
@@ -44,12 +46,16 @@ Info.plist     only what build settings cannot say: local http, no export questi
 ## CI and TestFlight
 
 `.github/workflows/ios.yml` builds and tests on a simulator, unsigned,
-whenever a push or pull request touched `ios/` — a Linux job decides
-first, because macOS minutes bill at ten times the Linux rate here.
+whenever a push or pull request touched `ios/`. A Linux job decides in
+about fifteen seconds whether a Mac is needed at all. The repository is
+public, so the minutes are free either way — the filter is there so a
+build you are waiting for is not queued behind one nobody needed. It
+expects the scheme **`Wealth`**, which is shared in the project.
 
 A `v1.2.3` tag also archives the app as marketing version 1.2.3, build
 10203, and uploads it to TestFlight — once these four secrets exist
-(Settings → Secrets and variables → Actions):
+(Settings → Secrets and variables → Actions), and never in the
+repository itself:
 
 | Secret | What |
 |---|---|

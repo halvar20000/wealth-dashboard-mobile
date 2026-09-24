@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Style
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -67,7 +68,7 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-private enum class Tab { Overview, Portfolio, Triage, Transactions, Settings }
+private enum class Tab { Overview, Portfolio, Triage, Cashflow, Transactions, Settings }
 
 /** What the shortcut sends; an explicit component, so no filter is
  *  needed for it. */
@@ -80,6 +81,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
     val txns by vm.txns.collectAsStateWithLifecycle()
     val triage by vm.triage.collectAsStateWithLifecycle()
     val portfolio by vm.portfolio.collectAsStateWithLifecycle()
+    val cashflow by vm.cashflow.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(start) }
     LaunchedEffect(start) { if (start == Tab.Triage) vm.loadTriage(owning = false) }
     var account by remember { mutableStateOf<Account?>(null) }
@@ -101,12 +103,25 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                         Tab.Overview -> "Overview"
                         Tab.Portfolio -> "Portfolio"
                         Tab.Triage -> "Triage"
+                        Tab.Cashflow -> "Cashflow"
                         Tab.Transactions -> "Transactions"
                         Tab.Settings -> "Settings"
                     }
                     Text(account?.name ?: heading)
                 },
                 actions = {
+                    // Two refreshes, and the difference matters: the
+                    // left one re-reads what the dashboard already
+                    // knows, the right one makes it fetch quotes and
+                    // exchange rates. Neither talks to a bank — that is
+                    // the dashboard's own sync, and it takes minutes.
+                    IconButton(onClick = { vm.refreshMarket() }, enabled = !state.pricing) {
+                        if (state.pricing) {
+                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.ShowChart, contentDescription = "Kurse aktualisieren")
+                        }
+                    }
                     IconButton(onClick = { vm.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
@@ -134,9 +149,9 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     },
                     label = { Text("Triage") })
                 NavigationBarItem(
-                    selected = tab == Tab.Transactions,
-                    onClick = { tab = Tab.Transactions; account = null; vm.loadTransactions() },
-                    icon = { Icon(Icons.Default.SwapVert, null) }, label = { Text("Rows") })
+                    selected = tab == Tab.Cashflow || tab == Tab.Transactions,
+                    onClick = { tab = Tab.Cashflow; account = null; vm.loadCashflow() },
+                    icon = { Icon(Icons.Default.SwapVert, null) }, label = { Text("Cashflow") })
                 NavigationBarItem(
                     selected = tab == Tab.Settings,
                     onClick = { tab = Tab.Settings; account = null },
@@ -153,6 +168,13 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 tab == Tab.Transactions -> TransactionsScreen(txns, "everything") { q ->
                     vm.loadTransactions(null, q)
                 }
+                tab == Tab.Cashflow -> CashflowScreen(
+                    state = cashflow,
+                    baseCurrency = snap?.baseCurrency ?: "EUR",
+                    onMonths = { vm.loadCashflow(it) },
+                    onRefresh = { vm.loadCashflow() },
+                    onTransactions = { tab = Tab.Transactions; vm.loadTransactions() },
+                )
                 tab == Tab.Portfolio -> PortfolioScreen(
                     state = portfolio,
                     accounts = snap?.accounts.orEmpty(),
@@ -178,7 +200,9 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                         owning = triage.owning, rows = triage.rows, remaining = triage.remaining,
                         categories = triage.categories, people = triage.people,
                         waiting = triage.waiting, loading = triage.loading, error = triage.error,
-                        onDecide = { row, category, owner -> vm.decide(row, category, owner) },
+                        onDecide = { row, category, owner, pattern, remember ->
+                            vm.decide(row, category, owner, pattern, remember)
+                        },
                         onUndo = { vm.undoLast() },
                         onRefresh = { vm.loadTriage(triage.owning) },
                     )
@@ -200,6 +224,8 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 else -> OverviewScreen(
                     snapshot = snap, at = state.at, stale = state.stale, error = state.error,
                     history = portfolio.history.points.mapNotNull { it.netWorth },
+                    excluded = state.excluded,
+                    onToggleClass = { vm.toggleClass(it) },
                     onAccounts = { tab = Tab.Portfolio; vm.loadPortfolio() },
                     onTransactions = { tab = Tab.Transactions; vm.loadTransactions() },
                 )

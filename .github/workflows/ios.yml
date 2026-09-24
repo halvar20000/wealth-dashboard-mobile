@@ -4,11 +4,12 @@ name: Build the iOS app
 # archives the app, signs it and uploads it to TestFlight, if the
 # repository holds an App Store Connect API key.
 #
-# macOS minutes bill at **10×** the Linux rate against a private
-# repository's free allowance: 2 000 included minutes are 200 macOS
-# minutes, and a SwiftUI build is 3–8 of them. So nothing here starts a
-# macOS runner until it is worth it — the decision is made on Linux
-# first, where a job costs about fifteen seconds at 1×.
+# This repository is public, so Actions minutes are free — macOS ones
+# too, which bill at 10× the Linux rate everywhere else. The filter
+# below stays anyway: a build that nobody needs is still four minutes
+# of waiting for the one that follows it, and a green tick that means
+# "iOS unchanged" is easier to read than one that means "built again
+# for nothing".
 #
 # A macOS runner starts only when:
 #   • a tag is pushed (a release must always build), or
