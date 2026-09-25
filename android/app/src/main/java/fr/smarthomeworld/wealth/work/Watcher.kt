@@ -80,16 +80,18 @@ fun notice(context: Context, store: Store, snap: Snapshot) {
     val (key, title, text) = when {
         below != null -> Triple(
             "below:${below.date}",
-            "${below.account ?: "An account"} runs out on ${Fmt.day(below.date)}",
-            "${below.name} takes it to ${Fmt.money(below.running, snap.baseCurrency)}.")
+            context.getString(R.string.notice_low_title,
+                below.account ?: context.getString(R.string.notice_an_account), Fmt.day(below.date)),
+            context.getString(R.string.notice_low_text,
+                below.name, Fmt.money(below.running, snap.baseCurrency)))
         red > 0 -> Triple(
             "red:$red",
-            if (red == 1) "A bank link has stopped" else "$red bank links have stopped",
-            "The dashboard could not sync. Open it to reconnect.")
+            context.resources.getQuantityString(R.plurals.notice_red_title, red, red),
+            context.getString(R.string.notice_red_text))
         queue >= 10 -> Triple(
             "queue:${queue / 10}",
-            "$queue rows are waiting",
-            "A thumb and a few minutes clears them — Triage.")
+            context.resources.getQuantityString(R.plurals.notice_queue_title, queue, queue),
+            context.getString(R.string.notice_queue_text))
         else -> return
     }
     if (store.lastNotice == key) return
@@ -97,8 +99,8 @@ fun notice(context: Context, store: Store, snap: Snapshot) {
     val manager = NotificationManagerCompat.from(context)
     manager.createNotificationChannel(
         NotificationChannelCompat.Builder(CHANNEL, NotificationManager.IMPORTANCE_DEFAULT)
-            .setName("Your money")
-            .setDescription("Low balances ahead, a bank link that stopped, a queue that grew.")
+            .setName(context.getString(R.string.channel_name))
+            .setDescription(context.getString(R.string.channel_description))
             .build())
     val open = PendingIntent.getActivity(
         context, 0, Intent(context, MainActivity::class.java)

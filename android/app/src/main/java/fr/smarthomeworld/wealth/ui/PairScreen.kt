@@ -9,6 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import fr.smarthomeworld.wealth.R
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,10 +35,9 @@ fun PairScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Spacer(Modifier.height(24.dp))
-        Text("Wealth Dashboard", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.dashboard_name), style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Open the dashboard in a browser, go to Settings → Assistants → " +
-                "Pair a phone or a tablet, and type what it shows here.",
+            stringResource(R.string.pair_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -44,7 +45,7 @@ fun PairScreen(
         OutlinedTextField(
             value = url,
             onValueChange = { url = it },
-            label = { Text("Address") },
+            label = { Text(stringResource(R.string.pair_address)) },
             placeholder = { Text("dashboard.example.com") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -53,7 +54,7 @@ fun PairScreen(
         OutlinedTextField(
             value = code,
             onValueChange = { new -> code = new.filter { it.isDigit() }.take(6) },
-            label = { Text("Pairing code") },
+            label = { Text(stringResource(R.string.pair_code)) },
             placeholder = { Text("123456") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -66,7 +67,7 @@ fun PairScreen(
             modifier = Modifier.fillMaxWidth().height(52.dp),
         ) {
             if (pairing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            else Text("Pair this device")
+            else Text(stringResource(R.string.pair_button))
         }
 
         if (error != null) {
@@ -80,10 +81,7 @@ fun PairScreen(
         }
 
         Text(
-            "The code is good for five minutes and for one device. Nothing " +
-                "is stored on the dashboard about this phone; the token it " +
-                "hands back lives in this phone's keystore and can be revoked " +
-                "there at any time.",
+            stringResource(R.string.pair_note),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Start,
@@ -99,14 +97,14 @@ fun LockScreen(onUnlock: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("Locked", style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.locked), style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Unlock to see the figures.",
+            stringResource(R.string.locked_note),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onUnlock) { Text("Unlock") }
+        Button(onClick = onUnlock) { Text(stringResource(R.string.unlock)) }
     }
 }

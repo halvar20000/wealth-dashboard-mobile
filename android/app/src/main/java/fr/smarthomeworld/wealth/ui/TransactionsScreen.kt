@@ -8,9 +8,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import fr.smarthomeworld.wealth.data.TransactionPage
+import fr.smarthomeworld.wealth.R
 
 @Composable
 fun TransactionsScreen(
@@ -24,7 +26,7 @@ fun TransactionsScreen(
         OutlinedTextField(
             value = query,
             onValueChange = { query = it; onSearch(it) },
-            label = { Text("Search $title") },
+            label = { Text(stringResource(R.string.search_in, title)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         )
@@ -34,7 +36,7 @@ fun TransactionsScreen(
             }
         } else {
         Text(
-            "${page.returned} of ${page.matched}",
+            stringResource(R.string.n_of_m, page.returned, page.matched),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp),

@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import fr.smarthomeworld.wealth.CashflowState
 import fr.smarthomeworld.wealth.data.MonthFlow
+import fr.smarthomeworld.wealth.R
 
 /**
  * What came in, what went out, and what is left.
@@ -46,13 +48,13 @@ fun CashflowScreen(
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
-                Text("Cashflow", style = MaterialTheme.typography.titleMedium,
+                Text(stringResource(R.string.tab_cashflow), style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold)
                 Row {
                     listOf(6, 13, 25).forEach { m ->
                         TextButton(onClick = { onMonths(m) }) {
                             Text(
-                                "$m M",
+                                stringResource(R.string.months_short, m),
                                 fontWeight = if (state.months == m) FontWeight.Bold else FontWeight.Normal,
                                 color = if (state.months == m) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -70,9 +72,9 @@ fun CashflowScreen(
                         state.error != null -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(state.error, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.height(10.dp))
-                            OutlinedButton(onClick = onRefresh) { Text("Nochmal laden") }
+                            OutlinedButton(onClick = onRefresh) { Text(stringResource(R.string.fetch_again)) }
                         }
-                        else -> Text("Noch nichts geladen.",
+                        else -> Text(stringResource(R.string.nothing_loaded),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -85,7 +87,7 @@ fun CashflowScreen(
         item {
             Card(shape = RoundedCornerShape(18.dp)) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Im Schnitt pro Monat", style = MaterialTheme.typography.labelMedium,
+                    Text(stringResource(R.string.average_month), style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(Fmt.signedMoney(flow.averageNet, ccy),
                         style = MaterialTheme.typography.headlineMedium,
@@ -93,19 +95,19 @@ fun CashflowScreen(
                         color = if (flow.averageNet >= 0) Gain else Loss)
                     Spacer(Modifier.height(10.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Figure("Ein", Fmt.money(flow.averageIncome, ccy), Gain)
-                        Figure("Aus", Fmt.money(flow.averageSpending, ccy), Loss)
-                        Figure("Angelegt",
+                        Figure(stringResource(R.string.flow_in), Fmt.money(flow.averageIncome, ccy), Gain)
+                        Figure(stringResource(R.string.flow_out), Fmt.money(flow.averageSpending, ccy), Loss)
+                        Figure(stringResource(R.string.flow_invested),
                             Fmt.money(flow.totalInvestment / (flow.monthsCovered.coerceAtLeast(1)), ccy),
                             MaterialTheme.colorScheme.primary)
                     }
                     if (flow.unconverted.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Ohne Kurs und daher nicht umgerechnet: " +
+                            stringResource(R.string.unconverted,
                                 flow.unconverted.joinToString(", ") {
                                     "${Fmt.money(it.amount, it.currency)} ${it.currency}"
-                                },
+                                }),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -116,7 +118,7 @@ fun CashflowScreen(
         item { Bars(flow.months, ccy) }
 
         item {
-            Text("Wohin es geht", style = MaterialTheme.typography.titleSmall,
+            Text(stringResource(R.string.where_it_goes), style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold)
         }
         items(flow.byCategory.take(14)) { c ->
@@ -124,7 +126,7 @@ fun CashflowScreen(
             Column(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(c.label.ifBlank { c.category }, style = MaterialTheme.typography.bodyMedium)
-                    Text("${Fmt.money(c.perMonth, ccy)} / Monat",
+                    Text(stringResource(R.string.per_month, Fmt.money(c.perMonth, ccy)),
                         style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 }
                 Spacer(Modifier.height(4.dp))
@@ -138,13 +140,13 @@ fun CashflowScreen(
 
         if (flow.incomeByCategory.isNotEmpty()) {
             item {
-                Text("Woher es kommt", style = MaterialTheme.typography.titleSmall,
+                Text(stringResource(R.string.where_it_comes_from), style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold)
             }
             items(flow.incomeByCategory.take(8)) { c ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(c.label.ifBlank { c.category }, style = MaterialTheme.typography.bodyMedium)
-                    Text("${Fmt.money(c.perMonth, ccy)} / Monat",
+                    Text(stringResource(R.string.per_month, Fmt.money(c.perMonth, ccy)),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold, color = Gain)
                 }

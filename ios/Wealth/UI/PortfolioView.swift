@@ -112,7 +112,7 @@ struct PortfolioView: View {
         let line = history?.line ?? []
         Group {
             if line.count > 1 {
-                LineChart(values: line)
+                LineChart(values: line, dates: history?.lineDates ?? [], currency: currency)
             } else if history == nil {
                 ProgressView()
             } else {

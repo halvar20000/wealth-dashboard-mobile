@@ -152,7 +152,7 @@ class Repo(private val store: Store) {
     }
 
     suspend fun pair(url: String, code: String): Paired = withContext(Dispatchers.IO) {
-        val reply = Api.pair(url, code)
+        val reply = Api.pair(store.context, url, code)
         store.pair(url, reply)
         reply
     }

@@ -13,17 +13,19 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import fr.smarthomeworld.wealth.PortfolioState
 import fr.smarthomeworld.wealth.data.Account
 import fr.smarthomeworld.wealth.data.Holding
 import fr.smarthomeworld.wealth.data.Period
+import fr.smarthomeworld.wealth.R
 
 /** The windows the chart offers, in the order the dashboard names them. */
 private val PERIODS = listOf(
-    "1m" to "1 M", "3m" to "3 M", "6m" to "6 M",
-    "ytd" to "YTD", "1y" to "1 J", "all" to "Alles",
+    "1m" to R.string.period_1m, "3m" to R.string.period_3m, "6m" to R.string.period_6m,
+    "ytd" to R.string.period_ytd, "1y" to R.string.period_1y, "all" to R.string.period_all,
 )
 
 /**
@@ -44,7 +46,8 @@ fun PortfolioScreen(
     onRefresh: () -> Unit,
 ) {
     var view by rememberSaveable { mutableStateOf(0) }   // 0 Wertpapiere, 1 Aufteilung, 2 Konten
-    val line = state.history.points.mapNotNull { it.netWorth }
+    val known = state.history.points.filter { it.netWorth != null }
+    val line = known.map { it.netWorth!! }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -53,7 +56,7 @@ fun PortfolioScreen(
     ) {
         item {
             Column {
-                Text("Vermögen", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.wealth), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     Fmt.money(line.lastOrNull() ?: state.total, state.baseCurrency),
@@ -66,7 +69,7 @@ fun PortfolioScreen(
                         listOfNotNull(
                             Fmt.signedMoney(change, state.baseCurrency),
                             pct?.let { Fmt.percent(it) },
-                            state.history.firstDate?.let { "seit ${Fmt.day(it)}" },
+                            state.history.firstDate?.let { stringResource(R.string.since_day, Fmt.day(it)) },
                         ).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (change >= 0) Gain else Loss)
@@ -80,10 +83,10 @@ fun PortfolioScreen(
                     CircularProgressIndicator()
                 }
             } else if (line.size > 1) {
-                LineChart(line)
+                LineChart(line, dates = known.map { it.date }, currency = state.baseCurrency)
             } else {
                 Box(Modifier.fillMaxWidth().height(170.dp), Alignment.Center) {
-                    Text("Für diesen Zeitraum gibt es noch keine Punkte.",
+                    Text(stringResource(R.string.no_points),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -97,14 +100,15 @@ fun PortfolioScreen(
                         selected = state.period == key,
                         onClick = { onPeriod(key) },
                         shape = SegmentedButtonDefaults.itemShape(i, PERIODS.size),
-                    ) { Text(label, style = MaterialTheme.typography.labelSmall) }
+                    ) { Text(stringResource(label), style = MaterialTheme.typography.labelSmall) }
                 }
             }
         }
 
         item {
             TabRow(selectedTabIndex = view) {
-                listOf("Wertpapiere", "Aufteilung", "Konten").forEachIndexed { i, title ->
+                listOf(R.string.view_securities, R.string.view_allocation, R.string.view_accounts)
+                    .map { stringResource(it) }.forEachIndexed { i, title ->
                     Tab(selected = view == i, onClick = { view = i },
                         text = { Text(title, style = MaterialTheme.typography.labelLarge) })
                 }
@@ -117,7 +121,7 @@ fun PortfolioScreen(
                        modifier = Modifier.fillMaxWidth().padding(24.dp)) {
                     Text(state.error, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(10.dp))
-                    OutlinedButton(onClick = onRefresh) { Text("Nochmal laden") }
+                    OutlinedButton(onClick = onRefresh) { Text(stringResource(R.string.fetch_again)) }
                 }
             }
         }
@@ -134,7 +138,7 @@ fun PortfolioScreen(
                 ListItem(
                     headlineContent = { Text(a.name) },
                     supportingContent = {
-                        Text(listOfNotNull(a.bank, a.type).joinToString(" · ").ifBlank { "Konto" })
+                        Text(listOfNotNull(a.bank, a.type).joinToString(" · ").ifBlank { stringResource(R.string.account) })
                     },
                     trailingContent = {
                         Text(Fmt.money(a.balanceBase ?: a.balance, state.baseCurrency),
@@ -156,10 +160,10 @@ private fun Totals(state: PortfolioState) {
     Card(shape = RoundedCornerShape(18.dp)) {
         Row(Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween) {
-            Figure("Wertpapiere", Fmt.money(value, state.baseCurrency))
-            Figure("Eingezahlt", Fmt.money(invested, state.baseCurrency))
+            Figure(stringResource(R.string.view_securities), Fmt.money(value, state.baseCurrency))
+            Figure(stringResource(R.string.invested), Fmt.money(invested, state.baseCurrency))
             Figure(
-                "Gewinn", Fmt.signedMoney(gain, state.baseCurrency),
+                stringResource(R.string.gain), Fmt.signedMoney(gain, state.baseCurrency),
                 colour = if (gain >= 0) Gain else Loss,
                 note = state.returns.all?.twr?.let { Fmt.percent(it) })
         }
@@ -215,15 +219,15 @@ private fun HoldingCard(h: Holding, ret: Period?, base: String?) {
             AnimatedVisibility(open) {
                 Column(Modifier.padding(top = 12.dp),
                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Detail("Eingezahlt", Fmt.money(h.invested, base))
-                    ret?.twrAnnual?.let { Detail("Rendite p. a.", Fmt.percent(it)) }
-                    ret?.mwr?.let { Detail("Geldgewichtet p. a.", Fmt.percent(it)) }
-                    ret?.since?.let { Detail("Seit", Fmt.day(it)) }
-                    h.priceAsOf?.let { Detail("Kurs vom", Fmt.day(it)) }
-                    h.lastTrade?.let { Detail("Letzter Handel", Fmt.day(it)) }
-                    if (h.accounts.isNotEmpty()) Detail("Depot", h.accounts.joinToString(", "))
+                    Detail(stringResource(R.string.invested), Fmt.money(h.invested, base))
+                    ret?.twrAnnual?.let { Detail(stringResource(R.string.return_pa), Fmt.percent(it)) }
+                    ret?.mwr?.let { Detail(stringResource(R.string.money_weighted_pa), Fmt.percent(it)) }
+                    ret?.since?.let { Detail(stringResource(R.string.since), Fmt.day(it)) }
+                    h.priceAsOf?.let { Detail(stringResource(R.string.price_of), Fmt.day(it)) }
+                    h.lastTrade?.let { Detail(stringResource(R.string.last_trade), Fmt.day(it)) }
+                    if (h.accounts.isNotEmpty()) Detail(stringResource(R.string.depot), h.accounts.joinToString(", "))
                     if (h.incompleteHistory) {
-                        Text("Die Handelshistorie ist lückenhaft — die Rendite ist eine Näherung.",
+                        Text(stringResource(R.string.history_gaps),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -250,7 +254,7 @@ private fun AllocationCard(state: PortfolioState) {
     Card(shape = RoundedCornerShape(18.dp)) {
         Column(Modifier.padding(16.dp)) {
             if (rows.isEmpty()) {
-                Text("Noch keine Aufteilung — die Positionen sind nicht klassifiziert.",
+                Text(stringResource(R.string.no_allocation),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 return@Column
@@ -261,7 +265,7 @@ private fun AllocationCard(state: PortfolioState) {
                         Text(Fmt.money(state.allocation.total, state.baseCurrency),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold)
-                        Text("gesamt", style = MaterialTheme.typography.labelSmall,
+                        Text(stringResource(R.string.total), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -274,7 +278,7 @@ private fun AllocationCard(state: PortfolioState) {
                             Spacer(Modifier.width(8.dp))
                             Text(assetClass(r.key), Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodySmall)
-                            Text("${r.share.toInt()} %",
+                            Text(stringResource(R.string.percent_int, r.share.toInt()),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold)
                         }
@@ -282,19 +286,20 @@ private fun AllocationCard(state: PortfolioState) {
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Detail("davon Bargeld", Fmt.money(state.allocation.cash, state.baseCurrency))
+            Detail(stringResource(R.string.of_which_cash), Fmt.money(state.allocation.cash, state.baseCurrency))
         }
     }
 }
 
-/** The dashboard's slugs, in German. An unknown one is shown as it is. */
+/** The dashboard's slugs, in words. An unknown one is shown as it is. */
+@Composable
 private fun assetClass(key: String): String = when (key) {
-    "equity" -> "Aktien"
-    "bond" -> "Anleihen"
-    "real_estate" -> "Immobilien"
-    "commodity" -> "Rohstoffe"
-    "cash" -> "Bargeld"
-    "crypto" -> "Krypto"
-    "other" -> "Sonstiges"
+    "equity" -> stringResource(R.string.class_equity)
+    "bond" -> stringResource(R.string.class_bond)
+    "real_estate" -> stringResource(R.string.class_real_estate)
+    "commodity" -> stringResource(R.string.class_commodity)
+    "cash" -> stringResource(R.string.class_cash)
+    "crypto" -> stringResource(R.string.class_crypto)
+    "other" -> stringResource(R.string.class_other)
     else -> key.replaceFirstChar { it.uppercase() }
 }
