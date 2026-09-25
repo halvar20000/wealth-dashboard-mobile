@@ -36,7 +36,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 13 | Quick tile "sync now" | ✅ 0.2.0 | n/a | iOS has no equivalent; a Control (iOS 18) is the nearest |
 | 14 | Shortcut straight into triage | ✅ 0.2.0 | ✅ 1.2.2 | app shortcut / Home-screen quick action |
 | 15 | Unlock with the device's own lock | ✅ 0.1.0 | ✅ 1.2.2 | BiometricPrompt / LocalAuthentication |
-| 16 | German, French, Spanish | 🚧 partial | — | the dashboard has all three; the clients are mixed |
+| 16 | German, French, Spanish | 🚧 German 1.2.6 | — | the dashboard has all three. The app follows the phone's language; a string added in English needs its German in the same pull request (Android: `values-de/strings.xml`). French and Spanish not started |
 | 17 | Cash flow: months, categories, what is left | ✅ 1.2.0 | ✅ 1.2.1 | `cashflow`, dashboard ≥ 0.73.0 |
 | 18 | Wear / watchOS complication | — | — | nobody has asked yet |
 

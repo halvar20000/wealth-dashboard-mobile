@@ -18,8 +18,22 @@ let slices: [Color] = [0x4F86F7, 0x34D399, 0xF59E0B, 0xF87171,
 
 /// The line of a value over time. Rising or falling decides the colour,
 /// because the first thing anybody asks of this chart is the direction.
+///
+/// A short press on the line picks the nearest day: a thin rule marks it
+/// and a label above says when and how much. Sliding then walks through
+/// time; lifting the finger puts the chart back as it was. The press
+/// comes first so that a swipe over the chart still scrolls the list.
 struct LineChart: View {
     let values: [Double]
+    /// One ISO date per value, for the label; without them the chart
+    /// still draws but a press shows nothing.
+    var dates: [String] = []
+    var currency: String? = nil
+
+    @State private var picked: Int?
+    @State private var labelWidth: CGFloat = 0
+
+    private var scrubbable: Bool { values.count > 1 && dates.count == values.count }
 
     var body: some View {
         let up = values.count < 2 || (values.last ?? 0) >= (values.first ?? 0)
@@ -40,7 +54,14 @@ struct LineChart: View {
                                          startPoint: .top, endPoint: .bottom))
                     Path { p in p.addLines(points) }
                         .stroke(colour, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-                    if let last = points.last {
+                    if let i = picked, points.indices.contains(i) {
+                        Rectangle().fill(colour.opacity(0.5))
+                            .frame(width: 1, height: size.height)
+                            .offset(x: points[i].x - 0.5)
+                        Circle().fill(colour)
+                            .frame(width: 10, height: 10)
+                            .position(points[i])
+                    } else if let last = points.last {
                         Circle().fill(colour)
                             .frame(width: 8, height: 8)
                             .position(last)
@@ -48,10 +69,61 @@ struct LineChart: View {
                     Rectangle().fill(Color.secondary.opacity(0.18))
                         .frame(width: size.width, height: 1)
                         .offset(y: size.height - 1)
+                    if let i = picked, points.indices.contains(i) {
+                        label(i)
+                            .offset(x: min(max(points[i].x - labelWidth / 2, 0),
+                                           max(size.width - labelWidth, 0)))
+                    }
                 }
+                .contentShape(Rectangle())
+                .gesture(scrub(width: size.width), including: scrubbable ? .all : .subviews)
             }
         }
         .accessibilityHidden(true)
+    }
+
+    /// The label rides above the finger but stays inside the chart, so
+    /// the first and last days are readable too.
+    private func label(_ i: Int) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(Fmt.day(dates[i])).font(.caption2).foregroundStyle(.secondary)
+            Text(Fmt.money(values[i], currency)).font(.subheadline.weight(.semibold))
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .fixedSize()
+        .background(GeometryReader { g in
+            Color.clear.onAppear { labelWidth = g.size.width }
+                .onChange(of: g.size.width) { _, w in labelWidth = w }
+        })
+    }
+
+    private func scrub(width: CGFloat) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.15)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    // The press is recognised before the finger moves;
+                    // the drag's first event says where it is.
+                    break
+                case .second(true, let drag?):
+                    let i = index(at: drag.location.x, width: width)
+                    if i != picked {
+                        picked = i
+                        UISelectionFeedbackGenerator().selectionChanged()
+                    }
+                default:
+                    break
+                }
+            }
+            .onEnded { _ in picked = nil }
+    }
+
+    private func index(at x: CGFloat, width: CGFloat) -> Int {
+        guard width > 0, values.count > 1 else { return 0 }
+        let i = Int((x / width * CGFloat(values.count - 1)).rounded())
+        return min(max(i, 0), values.count - 1)
     }
 
     private func points(in size: CGSize) -> [CGPoint] {

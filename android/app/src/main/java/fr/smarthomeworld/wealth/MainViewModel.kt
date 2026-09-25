@@ -83,6 +83,9 @@ data class PortfolioState(
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
+    private fun say(id: Int, vararg args: Any): String =
+        getApplication<Application>().getString(id, *args)
+
     private val store = Store(app)
     private val repo = Repo(store)
 
@@ -162,7 +165,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     // figures are still true as of when they were fetched.
                     _state.value = _state.value.copy(
                         loading = false, stale = true,
-                        error = (e as? Api.Failure)?.message ?: e.message ?: "The dashboard could not be reached.")
+                        error = (e as? Api.Failure)?.message ?: e.message ?: say(R.string.error_unreachable))
                 }
         }
     }
@@ -180,7 +183,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 .onFailure { e ->
                     _state.value = _state.value.copy(
                         pairing = false,
-                        error = (e as? Api.Failure)?.message ?: e.message ?: "Pairing failed.")
+                        error = (e as? Api.Failure)?.message ?: e.message ?: say(R.string.error_pairing))
                 }
         }
     }
@@ -242,7 +245,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     _cashflow.value = _cashflow.value.copy(
                         loading = false,
                         error = (e as? Api.Failure)?.message ?: e.message
-                            ?: "Der Cashflow kam nicht an.")
+                            ?: say(R.string.error_cashflow))
                 }
         }
     }
@@ -275,9 +278,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     }
                     val note = listOfNotNull(
                         head.ifBlank { null }?.let {
-                            if (misses.size > 2) "$it — und ${misses.size - 2} weitere" else it
+                            if (misses.size > 2) say(R.string.quotes_missed_more, it, misses.size - 2) else it
                         },
-                        market.rates?.error?.let { "Wechselkurse: $it" },
+                        market.rates?.error?.let { say(R.string.quotes_fx_error, it) },
                     ).joinToString(" · ").ifBlank { null }
                     _state.value = _state.value.copy(
                         pricing = false, snapshot = loaded.snapshot, at = loaded.at,
@@ -288,7 +291,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     _state.value = _state.value.copy(
                         pricing = false,
                         error = (e as? Api.Failure)?.message ?: e.message
-                            ?: "Die Kurse kamen nicht an.")
+                            ?: say(R.string.error_quotes))
                 }
         }
     }
@@ -314,7 +317,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     _portfolio.value = _portfolio.value.copy(
                         loading = false,
                         error = (e as? Api.Failure)?.message ?: e.message
-                            ?: "Das Dashboard war nicht erreichbar.")
+                            ?: say(R.string.error_unreachable))
                 }
         }
     }
@@ -329,7 +332,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 .onSuccess { _portfolio.value = _portfolio.value.copy(loading = false, history = it) }
                 .onFailure { e ->
                     _portfolio.value = _portfolio.value.copy(
-                        loading = false, error = e.message ?: "Der Verlauf kam nicht an.")
+                        loading = false, error = e.message ?: say(R.string.error_history))
                 }
         }
     }
@@ -354,7 +357,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }.onFailure { e ->
                 _triage.value = _triage.value.copy(
                     loading = false, waiting = repo.waiting(),
-                    error = (e as? Api.Failure)?.message ?: e.message ?: "Could not fetch the queue.")
+                    error = (e as? Api.Failure)?.message ?: e.message ?: say(R.string.error_queue))
             }
         }
     }
@@ -382,7 +385,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _triage.value = _triage.value.copy(
                 waiting = left,
                 error = if (left == _triage.value.waiting)
-                    "That one is already with the dashboard — change it there." else null)
+                    say(R.string.error_undo_sent) else null)
         }
     }
 
@@ -397,7 +400,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 .onSuccess { _txns.value = it }
                 .onFailure { e ->
                     _state.value = _state.value.copy(
-                        error = (e as? Api.Failure)?.message ?: e.message ?: "Could not load transactions.")
+                        error = (e as? Api.Failure)?.message ?: e.message ?: say(R.string.error_transactions))
                 }
         }
     }

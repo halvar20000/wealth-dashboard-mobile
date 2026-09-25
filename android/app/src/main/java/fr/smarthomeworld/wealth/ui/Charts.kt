@@ -2,6 +2,23 @@ package fr.smarthomeworld.wealth.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,53 +55,124 @@ val Slices = listOf(
 /**
  * The line of a value over time. Rising or falling decides the colour,
  * because the first thing anybody asks of this chart is the direction.
+ *
+ * A finger on the line picks the nearest day: a thin rule marks it and
+ * a label above says when and how much. Sliding sideways walks through
+ * time; lifting the finger puts the chart back as it was. Sideways
+ * only, so a vertical swipe still scrolls the page the chart sits in.
  */
 @Composable
 fun LineChart(
     values: List<Double>,
     modifier: Modifier = Modifier.fillMaxWidth().height(170.dp),
+    /** One ISO date per value, for the label; without them the chart
+     *  still draws but a touch shows nothing. */
+    dates: List<String> = emptyList(),
+    currency: String = "EUR",
 ) {
     val up = values.size < 2 || values.last() >= values.first()
     val line = if (up) Gain else Loss
     val grid = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
+    val scrubbable = values.size > 1 && dates.size == values.size
+    var picked by remember(values) { mutableStateOf<Int?>(null) }
+    var width by remember { mutableStateOf(0) }
 
-    Canvas(modifier) {
-        if (values.size < 2) return@Canvas
-        val lo = values.min()
-        val hi = values.max()
-        val span = (hi - lo).takeIf { it > 0.0 } ?: 1.0
-        val stepX = size.width / (values.size - 1)
-        // A little air above and below, so the line never touches the edge.
-        val top = size.height * 0.08f
-        val usable = size.height * 0.84f
+    fun indexAt(x: Float): Int {
+        if (width <= 0) return 0
+        val i = (x / width * (values.size - 1)).roundToInt()
+        return i.coerceIn(0, values.lastIndex)
+    }
 
-        fun pointAt(i: Int): Offset {
-            val y = top + usable * (1f - ((values[i] - lo) / span).toFloat())
-            return Offset(stepX * i, y)
+    val touch = if (!scrubbable) Modifier else Modifier
+        .pointerInput(values) {
+            detectTapGestures(onPress = { at ->
+                picked = indexAt(at.x)
+                tryAwaitRelease()
+                picked = null
+            })
+        }
+        .pointerInput(values) {
+            detectHorizontalDragGestures(
+                onDragStart = { at -> picked = indexAt(at.x) },
+                onDragEnd = { picked = null },
+                onDragCancel = { picked = null },
+                onHorizontalDrag = { change, _ ->
+                    change.consume()
+                    picked = indexAt(change.position.x)
+                },
+            )
         }
 
-        drawLine(grid, Offset(0f, size.height), Offset(size.width, size.height), 1f)
+    Box(modifier.onSizeChanged { width = it.width }.then(touch)) {
+        Canvas(Modifier.fillMaxSize()) {
+            if (values.size < 2) return@Canvas
+            val lo = values.min()
+            val hi = values.max()
+            val span = (hi - lo).takeIf { it > 0.0 } ?: 1.0
+            val stepX = size.width / (values.size - 1)
+            // A little air above and below, so the line never touches the edge.
+            val top = size.height * 0.08f
+            val usable = size.height * 0.84f
 
-        val path = Path().apply {
-            moveTo(0f, pointAt(0).y)
-            for (i in 1 until values.size) {
+            fun pointAt(i: Int): Offset {
+                val y = top + usable * (1f - ((values[i] - lo) / span).toFloat())
+                return Offset(stepX * i, y)
+            }
+
+            drawLine(grid, Offset(0f, size.height), Offset(size.width, size.height), 1f)
+
+            val path = Path().apply {
+                moveTo(0f, pointAt(0).y)
+                for (i in 1 until values.size) {
+                    val p = pointAt(i)
+                    lineTo(p.x, p.y)
+                }
+            }
+            // The same path closed downwards, filled with a fading wash.
+            val under = Path().apply {
+                addPath(path)
+                lineTo(size.width, size.height)
+                lineTo(0f, size.height)
+                close()
+            }
+            drawPath(under, Brush.verticalGradient(
+                listOf(line.copy(alpha = 0.28f), Color.Transparent)))
+            drawPath(path, line, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
+
+            val i = picked
+            if (i != null) {
                 val p = pointAt(i)
-                lineTo(p.x, p.y)
+                drawLine(line.copy(alpha = 0.5f), Offset(p.x, 0f), Offset(p.x, size.height),
+                    1.dp.toPx())
+                drawCircle(line, radius = 5.dp.toPx(), center = p)
+            } else {
+                drawCircle(line, radius = 4.dp.toPx(), center = pointAt(values.lastIndex))
             }
         }
-        // The same path closed downwards, filled with a fading wash.
-        val under = Path().apply {
-            addPath(path)
-            lineTo(size.width, size.height)
-            lineTo(0f, size.height)
-            close()
-        }
-        drawPath(under, Brush.verticalGradient(
-            listOf(line.copy(alpha = 0.28f), Color.Transparent)))
-        drawPath(path, line, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
 
-        val last = pointAt(values.lastIndex)
-        drawCircle(line, radius = 4.dp.toPx(), center = last)
+        val i = picked
+        if (i != null) {
+            // The label rides above the finger but stays inside the
+            // chart, so the first and last days are readable too.
+            var labelWidth by remember { mutableStateOf(0) }
+            val x = if (values.size > 1) width * i / (values.size - 1) else 0
+            val left = (x - labelWidth / 2).coerceIn(0, (width - labelWidth).coerceAtLeast(0))
+            Surface(
+                Modifier
+                    .offset { IntOffset(left, 0) }
+                    .onSizeChanged { labelWidth = it.width },
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shadowElevation = 2.dp,
+            ) {
+                Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    Text(Fmt.day(dates[i]), style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(Fmt.money(values[i], currency), style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
     }
 }
 

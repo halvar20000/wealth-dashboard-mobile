@@ -26,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -63,8 +64,8 @@ class MainActivity : FragmentActivity() {
             })
         prompt.authenticate(
             BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Wealth Dashboard")
-                .setSubtitle("Unlock to see the figures")
+                .setTitle(getString(R.string.dashboard_name))
+                .setSubtitle(getString(R.string.unlock_prompt))
                 .setAllowedAuthenticators(
                     BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
                 .build())
@@ -103,12 +104,12 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
             TopAppBar(
                 title = {
                     val heading = when (tab) {
-                        Tab.Overview -> "Overview"
-                        Tab.Portfolio -> "Portfolio"
-                        Tab.Triage -> "Triage"
-                        Tab.Cashflow -> "Cashflow"
-                        Tab.Transactions -> "Transactions"
-                        Tab.Settings -> "Settings"
+                        Tab.Overview -> stringResource(R.string.tab_overview)
+                        Tab.Portfolio -> stringResource(R.string.tab_portfolio)
+                        Tab.Triage -> stringResource(R.string.tab_triage)
+                        Tab.Cashflow -> stringResource(R.string.tab_cashflow)
+                        Tab.Transactions -> stringResource(R.string.tab_transactions)
+                        Tab.Settings -> stringResource(R.string.tab_settings)
                     }
                     Text(account?.name ?: heading)
                 },
@@ -128,11 +129,11 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                         if (state.pricing) {
                             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         } else {
-                            Icon(Icons.Default.ShowChart, contentDescription = "Kurse aktualisieren")
+                            Icon(Icons.Default.ShowChart, contentDescription = stringResource(R.string.refresh_quotes))
                         }
                     }
                     IconButton(onClick = { vm.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                 },
             )
@@ -142,11 +143,11 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 NavigationBarItem(
                     selected = tab == Tab.Overview && account == null,
                     onClick = { tab = Tab.Overview; account = null },
-                    icon = { Icon(Icons.Default.Insights, null) }, label = { Text("Overview") })
+                    icon = { Icon(Icons.Default.Insights, null) }, label = { Text(stringResource(R.string.tab_overview)) })
                 NavigationBarItem(
                     selected = tab == Tab.Portfolio,
                     onClick = { tab = Tab.Portfolio; account = null; vm.loadPortfolio() },
-                    icon = { Icon(Icons.Default.PieChart, null) }, label = { Text("Portfolio") })
+                    icon = { Icon(Icons.Default.PieChart, null) }, label = { Text(stringResource(R.string.tab_portfolio)) })
                 NavigationBarItem(
                     selected = tab == Tab.Triage,
                     onClick = { tab = Tab.Triage; account = null; vm.loadTriage(owning = false) },
@@ -156,15 +157,15 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                             Icon(Icons.Default.Style, null)
                         }
                     },
-                    label = { Text("Triage") })
+                    label = { Text(stringResource(R.string.tab_triage)) })
                 NavigationBarItem(
                     selected = tab == Tab.Cashflow || tab == Tab.Transactions,
                     onClick = { tab = Tab.Cashflow; account = null; vm.loadCashflow() },
-                    icon = { Icon(Icons.Default.SwapVert, null) }, label = { Text("Cashflow") })
+                    icon = { Icon(Icons.Default.SwapVert, null) }, label = { Text(stringResource(R.string.tab_cashflow)) })
                 NavigationBarItem(
                     selected = tab == Tab.Settings,
                     onClick = { tab = Tab.Settings; account = null },
-                    icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
+                    icon = { Icon(Icons.Default.Settings, null) }, label = { Text(stringResource(R.string.tab_settings)) })
             }
         },
     ) { pad ->
@@ -174,7 +175,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 account != null -> TransactionsScreen(txns, account!!.name) { q ->
                     vm.loadTransactions(account!!.id, q)
                 }
-                tab == Tab.Transactions -> TransactionsScreen(txns, "everything") { q ->
+                tab == Tab.Transactions -> TransactionsScreen(txns, stringResource(R.string.search_everything)) { q ->
                     vm.loadTransactions(null, q)
                 }
                 tab == Tab.Cashflow -> CashflowScreen(
@@ -199,11 +200,14 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                         SegmentedButton(
                             selected = !triage.owning, onClick = { vm.loadTriage(owning = false) },
                             shape = SegmentedButtonDefaults.itemShape(0, 2),
-                        ) { Text("Category") }
+                        ) { Text(stringResource(R.string.triage_category)) }
                         SegmentedButton(
                             selected = triage.owning, onClick = { vm.loadTriage(owning = true) },
                             shape = SegmentedButtonDefaults.itemShape(1, 2),
-                        ) { Text(if (unowned > 0) "Whose ($unowned)" else "Whose") }
+                        ) {
+                            Text(if (unowned > 0) stringResource(R.string.triage_whose_count, unowned)
+                                 else stringResource(R.string.triage_whose))
+                        }
                     }
                     TriageScreen(
                         owning = triage.owning, rows = triage.rows, remaining = triage.remaining,
@@ -228,11 +232,11 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     CircularProgressIndicator()
                 }
                 snap == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text(state.error ?: "Nothing yet — pull to refresh.", Modifier.padding(24.dp))
+                    Text(state.error ?: stringResource(R.string.nothing_yet), Modifier.padding(24.dp))
                 }
                 else -> OverviewScreen(
                     snapshot = snap, at = state.at, stale = state.stale, error = state.error,
-                    history = portfolio.history.points.mapNotNull { it.netWorth },
+                    history = portfolio.history.points,
                     excluded = state.excluded,
                     onToggleClass = { vm.toggleClass(it) },
                     onAccounts = { tab = Tab.Portfolio; vm.loadPortfolio() },
@@ -257,13 +261,13 @@ private fun PersonSwitch(
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }) {
-            Icon(Icons.Default.Person, contentDescription = null, Modifier.size(18.dp))
+            Icon(Icons.Default.Person, contentDescription = stringResource(R.string.person_switch), modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text(if (chosen == null) "Everyone" else people.firstOrNull { it.id == chosen }?.name ?: chosenName ?: "#$chosen", maxLines = 1)
+            Text(if (chosen == null) stringResource(R.string.person_everyone) else people.firstOrNull { it.id == chosen }?.name ?: chosenName ?: "#$chosen", maxLines = 1)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
-                text = { Text("Everyone") },
+                text = { Text(stringResource(R.string.person_everyone)) },
                 onClick = { open = false; onPick(null) },
                 trailingIcon = { if (chosen == null) Icon(Icons.Default.Check, null) },
             )
@@ -294,12 +298,12 @@ private fun SettingsScreen(
     // sense — not on the first start, when it means nothing yet.
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Paired with ${server ?: "your dashboard"}", style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(R.string.paired_with, server ?: stringResource(R.string.your_dashboard)), style = MaterialTheme.typography.bodyLarge)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Ask to unlock", style = MaterialTheme.typography.bodyMedium)
-                Text("Fingerprint, face or the phone's PIN before the figures show.",
+                Text(stringResource(R.string.setting_lock), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.setting_lock_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -308,10 +312,8 @@ private fun SettingsScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Watch in the background", style = MaterialTheme.typography.bodyMedium)
-                Text("Every few hours: send what you decided offline, refresh the " +
-                     "figures and the widget, and say something when an account is " +
-                     "about to run out, a bank link has stopped, or the queue has grown.",
+                Text(stringResource(R.string.setting_watch), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.setting_watch_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -323,10 +325,9 @@ private fun SettingsScreen(
                 }
             })
         }
-        OutlinedButton(onClick = onForget) { Text("Forget this dashboard") }
+        OutlinedButton(onClick = onForget) { Text(stringResource(R.string.forget)) }
         Text(
-            "Forgetting removes the token from this phone. The dashboard keeps " +
-                "working; pair again with a new code whenever you like.",
+            stringResource(R.string.forget_note),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

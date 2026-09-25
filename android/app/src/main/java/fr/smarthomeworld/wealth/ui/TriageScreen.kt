@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import fr.smarthomeworld.wealth.data.Category
 import fr.smarthomeworld.wealth.data.Person
 import fr.smarthomeworld.wealth.data.Waiting1
+import fr.smarthomeworld.wealth.R
 
 /**
  * The queue as a stack of cards, one thumb.
@@ -63,12 +65,12 @@ fun TriageScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (owning) "Whose spending?" else "What is this?",
+                stringResource(if (owning) R.string.triage_ask_whose else R.string.triage_ask_what),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(
                 listOfNotNull(
-                    "${(remaining - index).coerceAtLeast(0)} left",
-                    if (waiting > 0) "$waiting to send" else null,
+                    stringResource(R.string.triage_left, (remaining - index).coerceAtLeast(0)),
+                    if (waiting > 0) stringResource(R.string.triage_to_send, waiting) else null,
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -81,8 +83,8 @@ fun TriageScreen(
             }
             error != null && rows.isEmpty() -> Empty(error, onRefresh)
             row == null -> Empty(
-                if (remaining > 0) "That is all this app fetched — pull the rest."
-                else "Nothing waiting. The queue is empty.", onRefresh)
+                stringResource(if (remaining > 0) R.string.triage_fetched_all
+                               else R.string.triage_empty), onRefresh)
             else -> {
                 SwipeCard(
                     row = row,
@@ -99,14 +101,14 @@ fun TriageScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = { index++ }) { Text("Skip") }
+                    TextButton(onClick = { index++ }) { Text(stringResource(R.string.triage_skip)) }
                     TextButton(onClick = onUndo, enabled = waiting > 0) {
                         Icon(Icons.Default.Undo, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp)); Text("Undo last")
+                        Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.triage_undo))
                     }
                     Button(onClick = { sheetFor = row }) {
                         Icon(Icons.Default.Check, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp)); Text("Choose")
+                        Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.triage_choose))
                     }
                 }
             }
@@ -150,17 +152,16 @@ private fun RuleEditor(
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Als Regel merken", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.rule_remember), style = MaterialTheme.typography.bodyMedium)
             Switch(checked = enabled, onCheckedChange = onRemember)
         }
         AnimatedVisibility(enabled) {
             OutlinedTextField(
                 value = pattern,
                 onValueChange = onPattern,
-                label = { Text("Regel merkt sich") },
+                label = { Text(stringResource(R.string.rule_pattern)) },
                 supportingText = {
-                    Text("Der Text, an dem die nächste Buchung erkannt wird — " +
-                         "kürzer ist meist besser: „Tenmanya\u201C statt der ganzen Zeile.")
+                    Text(stringResource(R.string.rule_pattern_note))
                 },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -177,7 +178,7 @@ private fun Empty(text: String, onRefresh: () -> Unit) {
         Text(text, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
-        OutlinedButton(onClick = onRefresh) { Text("Fetch again") }
+        OutlinedButton(onClick = onRefresh) { Text(stringResource(R.string.fetch_again)) }
     }
 }
 
@@ -243,15 +244,15 @@ private fun SwipeCard(
             if (guess != null) {
                 Spacer(Modifier.height(14.dp))
                 AssistChip(onClick = onRight, label = {
-                    Text("Swipe right: ${guessLabel ?: guess}")
+                    Text(stringResource(R.string.swipe_right, guessLabel ?: guess))
                 })
                 row.pattern?.takeIf { it.isNotBlank() }?.let {
-                    Text("and remember “$it”", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.and_remember, it), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 Spacer(Modifier.height(14.dp))
-                AssistChip(onClick = onTap, label = { Text("Tap to choose") })
+                AssistChip(onClick = onTap, label = { Text(stringResource(R.string.tap_to_choose)) })
             }
         }
     }
@@ -272,10 +273,10 @@ private fun CategorySheet(categories: List<Category>, suggestion: String?, onPic
                 headlineContent = { Text(c.label) },
                 supportingContent = {
                     Text(listOfNotNull(
-                        c.group, if (c.transactions > 0) "${c.transactions} rows" else null,
+                        c.group, if (c.transactions > 0) plural(R.plurals.rows, c.transactions) else null,
                     ).joinToString(" · "))
                 },
-                trailingContent = if (c.slug == suggestion) ({ Text("guess") }) else null,
+                trailingContent = if (c.slug == suggestion) ({ Text(stringResource(R.string.guess)) }) else null,
                 modifier = Modifier.clickable { onPick(c.slug) },
             )
         }
@@ -291,8 +292,8 @@ private fun PeopleSheet(people: List<Person>, onPick: (String) -> Unit) {
                 modifier = Modifier.clickable { onPick(p.id.toString()) })
         }
         ListItem(
-            headlineContent = { Text("Shared") },
-            supportingContent = { Text("split evenly between the household") },
+            headlineContent = { Text(stringResource(R.string.shared)) },
+            supportingContent = { Text(stringResource(R.string.shared_note)) },
             modifier = Modifier.clickable { onPick("shared") },
         )
     }
