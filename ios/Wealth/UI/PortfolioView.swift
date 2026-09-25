@@ -16,8 +16,9 @@ private let windows = [
 ///
 /// Three views of one portfolio: the securities with what each has made,
 /// where the money sits by asset class, and the accounts themselves. The
-/// chart at the top belongs to all three — it is the net worth, the one
-/// line that answers "how is it going".
+/// chart at the top belongs to all three — it is what the depots hold,
+/// the securities alone: cash and property have the overview's line, and
+/// mixed in here they would hide how the shares are doing.
 struct PortfolioView: View {
     @Environment(AppModel.self) private var model
 
@@ -103,10 +104,10 @@ struct PortfolioView: View {
     private var currency: String { held?.baseCurrency ?? model.currency }
 
     @ViewBuilder private var header: some View {
-        let line = history?.line ?? []
+        let line = history?.securities ?? []
         VStack(alignment: .leading, spacing: 2) {
-            Text("NET WORTH").font(.caption2).tracking(2).foregroundStyle(.secondary)
-            Text(Fmt.money(line.last ?? model.snapshot?.netWorth?.total, currency))
+            Text("SECURITIES").font(.caption2).tracking(2).foregroundStyle(.secondary)
+            Text(Fmt.money(line.last ?? model.snapshot?.netWorth?.securities, currency))
                 .font(.title.weight(.bold))
                 .minimumScaleFactor(0.5).lineLimit(1)
             if line.count > 1, let first = line.first, let last = line.last {
@@ -123,10 +124,10 @@ struct PortfolioView: View {
     }
 
     @ViewBuilder private var chart: some View {
-        let line = history?.line ?? []
+        let line = history?.securities ?? []
         Group {
             if line.count > 1 {
-                LineChart(values: line, dates: history?.lineDates ?? [], currency: currency)
+                LineChart(values: line, dates: history?.securitiesDates ?? [], currency: currency)
             } else if history == nil {
                 ProgressView()
             } else {
@@ -299,7 +300,7 @@ private struct HoldingRow: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(h.title).fontWeight(.semibold).lineLimit(2)
-                    Text("\(h.symbol ?? h.isin ?? "") · \(Fmt.quantity(h.quantity)) × \(Fmt.price(h.price, h.currency))")
+                    Text(verbatim: "\(h.symbol ?? h.isin ?? "") · \(Fmt.quantity(h.quantity)) × \(Fmt.price(h.price, h.currency))")
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()

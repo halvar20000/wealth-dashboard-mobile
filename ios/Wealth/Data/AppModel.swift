@@ -22,6 +22,11 @@ final class AppModel {
     private(set) var pairing = false
     /// Set while the cheap refresh runs, so its button can say so.
     private(set) var pricing = false
+    /// The net worth over the last year, for the line under the figure.
+    /// Empty until it has been fetched — the overview works without it.
+    private(set) var netWorthLine: [Double] = []
+    /// The day of each value in `netWorthLine`, for the tooltip.
+    private(set) var netWorthDates: [String] = []
     /// Asset classes the viewer has unticked; the figure leaves them out.
     private(set) var excluded: Set<String>
     private(set) var serverVersion: String?
@@ -125,8 +130,16 @@ final class AppModel {
             // The token is gone on the dashboard's side. The figures stay
             // until the person decides to pair again.
             error = failure.message
+            return
         } catch {
             self.error = Self.sentence(for: error)
+            return
+        }
+        // The line is an extra: a dashboard that cannot draw it still
+        // gives the figure, and a failure here keeps yesterday's line.
+        if let history = try? await store.api().history(period: "1y") {
+            netWorthLine = history.line
+            netWorthDates = history.lineDates
         }
     }
 
@@ -364,6 +377,8 @@ final class AppModel {
         person = nil
         personName = nil
         snapshot = nil
+        netWorthLine = []
+        netWorthDates = []
         readAt = nil
         stale = true
         error = nil
@@ -376,11 +391,11 @@ final class AppModel {
         if let url = error as? URLError {
             switch url.code {
             case .notConnectedToInternet, .networkConnectionLost:
-                return "No network — the figures are the last ones read."
+                return String(localized: "No network — the figures are the last ones read.")
             case .cannotFindHost, .cannotConnectToHost, .timedOut:
-                return "The dashboard did not answer at that address."
+                return String(localized: "The dashboard did not answer at that address.")
             case .appTransportSecurityRequiresSecureConnection:
-                return "This address needs https."
+                return String(localized: "This address needs https.")
             default: break
             }
         }

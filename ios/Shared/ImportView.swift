@@ -88,11 +88,11 @@ struct ShareView: View {
                 }
                 content
             }
-            .navigationTitle(state.reply == nil ? "Import into…" : "Imported")
+            .navigationTitle(state.reply == nil ? LocalizedStringKey("Import into…") : LocalizedStringKey("Imported"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: state.reply == nil ? .cancellationAction : .confirmationAction) {
-                    Button(state.reply == nil ? "Cancel" : "Done") { state.close() }
+                    Button(state.reply == nil ? LocalizedStringKey("Cancel") : LocalizedStringKey("Done")) { state.close() }
                 }
             }
         }

@@ -16,11 +16,12 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 |---|---|---|---|---|
 | 1 | Pairing with a six-digit code | ✅ 0.1.0 | ✅ 1.2.1 | `POST /api/v1/pair`; token to the encrypted store |
 | 2 | Overview: net worth, its parts, return per period | ✅ 0.1.0 | ✅ 1.2.1 | one `snapshot` call |
-| 3 | Net-worth line chart, six windows | ✅ 1.1.0 | ✅ 1.2.2 | `net_worth_history`, drawn by hand (Canvas / SwiftUI Path) |
+| 3 | Portfolio line chart, six windows | ✅ 1.1.0 | ✅ 1.2.2 | `net_worth_history`, drawn by hand (Canvas / SwiftUI Path); since 1.2.6 the `securities` line, not the whole net worth |
 | 3a | Net worth without chosen asset classes | ✅ 1.2.0 | ✅ 1.2.1 | tick boxes over `by_class`, kept on the phone |
 | 3b | Performance: all eight windows without scrolling | ✅ 1.2.0 | ✅ 1.2.1 | two rows of four |
 | 3c | Refresh quotes and FX without a bank sync | ✅ 1.2.0 | ✅ 1.2.1 | `refresh_market`, dashboard ≥ 0.73.0 |
-| 3d | Whose figures: everyone, or one person's accounts | ✅ 1.2.5 | ✅ 1.2.5 | `person` on every tool that takes it, the switch fed by `people`; hidden when the dashboard knows nobody |
+| 3d | Whose figures: everyone, or one person's accounts | ✅ 1.2.6 | ✅ 1.2.6 | `person` on every tool that takes it, the switch fed by `people`; hidden when the dashboard knows nobody |
+| 3e | Net-worth line under the overview figure | ✅ 1.1.0 | ✅ 1.2.6 | `net_worth_history`, `net_worth` of each point |
 | 4 | Accounts, and the rows behind one | ✅ 0.1.0 | ✅ 1.2.1 | inside the Portfolio tab |
 | 5 | Transactions: list and search | ✅ 0.1.0 | ✅ 1.2.1 | `transactions` with `q` |
 | 6 | Portfolio: holdings with value, gain and return | ✅ 1.1.0 | ✅ 1.2.2 | `holdings` + `performance` |
@@ -36,7 +37,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 13 | Quick tile "sync now" | ✅ 0.2.0 | n/a | iOS has no equivalent; a Control (iOS 18) is the nearest |
 | 14 | Shortcut straight into triage | ✅ 0.2.0 | ✅ 1.2.2 | app shortcut / Home-screen quick action |
 | 15 | Unlock with the device's own lock | ✅ 0.1.0 | ✅ 1.2.2 | BiometricPrompt / LocalAuthentication |
-| 16 | German, French, Spanish | 🚧 German 1.2.6 | — | the dashboard has all three. The app follows the phone's language; a string added in English needs its German in the same pull request (Android: `values-de/strings.xml`). French and Spanish not started |
+| 16 | German, French, Spanish | 🚧 German 1.2.6 | 🚧 German 1.2.6 | the dashboard has all three. The apps follow the phone's language; a string added in English needs its German in the same pull request (Android: `values-de/strings.xml`; iOS: `ios/Shared/Localizable.xcstrings`, shared by app, widget and share sheet, plus `InfoPlist.xcstrings` per target). French and Spanish not started |
 | 17 | Cash flow: months, categories, what is left | ✅ 1.2.0 | ✅ 1.2.1 | `cashflow`, dashboard ≥ 0.73.0 |
 | 18 | Wear / watchOS complication | — | — | nobody has asked yet |
 

@@ -85,7 +85,7 @@ struct Account: Codable, Identifiable, Hashable {
     var balanceBase: Double?
     var asOf: String?
 
-    var title: String { name ?? "Account \(id)" }
+    var title: String { name ?? String(localized: "Account \(id)") }
 }
 
 struct Upcoming: Codable {
@@ -255,6 +255,14 @@ extension Snapshot {
     /// of unticked ones.
     static let debtClass = "Debt"
 
+    /// A class's name as the screen shows it: the debt line is the app's
+    /// own, so it is said in the phone's language; the rest are the
+    /// dashboard's names, as they come.
+    static func className(_ name: String?) -> String {
+        guard let name else { return "—" }
+        return name == debtClass ? String(localized: "Debt") : name
+    }
+
     /// What can be ticked: the classes, and the debt as a line of its own.
     ///
     /// `by_class` carries what is owned and nothing that is owed — the
@@ -355,6 +363,10 @@ struct Holdings: Codable {
 struct HistoryPoint: Codable, Hashable {
     var date: String?
     var netWorth: Double?
+    /// What the depots hold that day, without cash or anything else.
+    /// Nil on days rebuilt from another app's totals, which never split
+    /// the figure.
+    var securities: Double?
 }
 
 struct History: Codable {
@@ -363,10 +375,14 @@ struct History: Codable {
     var firstDate: String?
     var points: [HistoryPoint]?
 
-    /// The line, without the days nothing was recorded for.
+    /// The net worth, without the days nothing was recorded for.
     var line: [Double] { (points ?? []).compactMap(\.netWorth) }
     /// The day of each value in `line`, in the same order.
     var lineDates: [String] { (points ?? []).filter { $0.netWorth != nil }.map { $0.date ?? "" } }
+    /// The securities alone, for the portfolio's line.
+    var securities: [Double] { (points ?? []).compactMap(\.securities) }
+    /// The day of each value in `securities`, in the same order.
+    var securitiesDates: [String] { (points ?? []).filter { $0.securities != nil }.map { $0.date ?? "" } }
 }
 
 struct AllocationRow: Codable, Hashable {

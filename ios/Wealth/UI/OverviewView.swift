@@ -32,13 +32,13 @@ struct OverviewView: View {
                     ContentUnavailableView {
                         Label("No figures yet", systemImage: "icloud.slash")
                     } description: {
-                        Text(model.error ?? "Pull to load them from the dashboard.")
+                        Text(model.error ?? String(localized: "Pull to load them from the dashboard."))
                     } actions: {
                         Button("Try again") { Task { await model.refresh() } }
                     }
                 }
             }
-            .navigationTitle(model.serverName ?? "Overview")
+            .navigationTitle(model.serverName ?? String(localized: "Overview"))
             .navigationBarTitleDisplayMode(.inline)
             .personMenu()
             .toolbar {
@@ -75,7 +75,7 @@ struct OverviewView: View {
                         .font(.system(size: 40, weight: .heavy))
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
-                    let dropped = s.classes.compactMap(\.name).filter { model.excluded.contains($0) }
+                    let dropped = s.classes.compactMap(\.name).filter { model.excluded.contains($0) }.map { Snapshot.className($0) }
                     if !dropped.isEmpty {
                         Text("without \(dropped.joined(separator: ", ")) · with everything \(Fmt.money(s.netWorth?.total, ccy))")
                             .font(.footnote).foregroundStyle(.secondary)
@@ -91,6 +91,16 @@ struct OverviewView: View {
                 }
                 .padding(.vertical, 4)
                 .listRowBackground(Color.clear)
+
+                // The net worth over the last year, as on Android. It is
+                // the whole figure; the portfolio tab draws the depots.
+                if model.netWorthLine.count > 1 {
+                    LineChart(values: model.netWorthLine, dates: model.netWorthDates, currency: ccy)
+                        .frame(height: 150)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                        .listRowSeparator(.hidden)
+                }
             }
 
             if let error = model.error {
@@ -192,7 +202,7 @@ struct OverviewView: View {
     private func syncLine(_ sync: SyncHealth?) -> String {
         let links = sync?.links ?? 0
         let red = sync?.red ?? 0
-        return red > 0 ? "\(links) · \(red) " + String(localized: "red") : "\(links)"
+        return red > 0 ? String(localized: "\(links) · \(red) red") : "\(links)"
     }
 }
 
@@ -229,7 +239,7 @@ private struct ClassRow: View {
             HStack {
                 Image(systemName: counted ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(counted ? Color.gain : Color.secondary)
-                Text(item.name ?? "—")
+                Text(Snapshot.className(item.name))
                 Spacer()
                 Text(Fmt.money(item.value, currency))
                     .fontWeight(.semibold)

@@ -108,7 +108,6 @@
     <string name="guess">guess</string>
     <string name="shared">Shared</string>
     <string name="shared_note">split evenly between the household</string>
-    <string name="wealth">Wealth</string>
     <string name="since_day">since %1$s</string>
     <string name="no_points">There are no points for this period yet.</string>
     <string name="view_securities">Securities</string>

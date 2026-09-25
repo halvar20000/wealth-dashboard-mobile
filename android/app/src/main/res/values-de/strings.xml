@@ -106,7 +106,6 @@
     <string name="guess">Vorschlag</string>
     <string name="shared">Gemeinsam</string>
     <string name="shared_note">gleichmäßig auf den Haushalt aufgeteilt</string>
-    <string name="wealth">Vermögen</string>
     <string name="since_day">seit %1$s</string>
     <string name="no_points">Für diesen Zeitraum gibt es noch keine Punkte.</string>
     <string name="view_securities">Wertpapiere</string>

@@ -28,7 +28,8 @@ struct TransactionsView: View {
         .overlay {
             if page == nil && error == nil { ProgressView() }
         }
-        .searchable(text: $query, prompt: Text(account.map { "Search \($0.title)" } ?? "Search everything"))
+        .searchable(text: $query, prompt: Text(account.map { String(localized: "Search \($0.title)") }
+                                               ?? String(localized: "Search everything")))
         .task(id: query) {
             // Wait for the thumb to pause before asking the dashboard.
             if !query.isEmpty {

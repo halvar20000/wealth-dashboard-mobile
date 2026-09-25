@@ -281,6 +281,10 @@ data class Holdings(
 data class HistoryPoint(
     val date: String = "",
     @SerialName("net_worth") val netWorth: Double? = null,
+    /** What the depots hold that day, without cash or anything else.
+     *  None on days rebuilt from another app's totals, which never
+     *  split the figure. */
+    val securities: Double? = null,
 )
 
 @Serializable

@@ -346,6 +346,16 @@ final class WealthTests: XCTestCase {
         XCTAssertEqual(history.line, [1, 3])
     }
 
+    // The portfolio draws the depots alone; a day taken from another
+    // app's totals has no split and drops out of that line only.
+    func testHistorySecuritiesLine() throws {
+        let json = #"{"points": [{"date": "2026-01-01", "net_worth": 900, "securities": null, "recorded": true}, {"date": "2026-01-02", "net_worth": 1000, "cash": 400, "securities": 600}, {"date": "2026-01-03", "net_worth": 1100, "cash": 400, "securities": 700}]}"#
+        let history = try Api.decoder.decode(History.self, from: Data(json.utf8))
+        XCTAssertEqual(history.line, [900, 1000, 1100])
+        XCTAssertEqual(history.securities, [600, 700])
+        XCTAssertEqual(history.securitiesDates, ["2026-01-02", "2026-01-03"])
+    }
+
     // MARK: The triage
 
     func testQueueAndCategoriesDecode() throws {

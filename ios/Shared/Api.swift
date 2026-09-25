@@ -62,7 +62,7 @@ struct Api {
     /// Trade a pairing code for the token. No token yet, by definition.
     static func pair(baseURL: String, code: String, session: URLSession = Api.session) async throws -> Paired {
         guard let url = URL(string: normalise(baseURL) + "/api/v1/pair") else {
-            throw Failure(status: 0, message: "That address is not a URL.")
+            throw Failure(status: 0, message: String(localized: "That address is not a URL."))
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -73,7 +73,7 @@ struct Api {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         let reply = try? decoder.decode(Paired.self, from: data)
         guard (200..<300).contains(status), let reply, reply.token?.isEmpty == false else {
-            throw Failure(status: status, message: reply?.error ?? "The dashboard refused that code.")
+            throw Failure(status: status, message: reply?.error ?? String(localized: "The dashboard refused that code."))
         }
         return reply
     }
@@ -81,14 +81,14 @@ struct Api {
     /// One tool, called with GET, its `result` unwrapped from the envelope.
     func tool<T: Decodable>(_ name: String, _ args: [String: String] = [:], as type: T.Type) async throws -> T {
         guard var parts = URLComponents(string: baseURL + "/api/v1/tools/" + name) else {
-            throw Failure(status: 0, message: "That address is not a URL.")
+            throw Failure(status: 0, message: String(localized: "That address is not a URL."))
         }
         var args = args
         if let person, Api.scoped.contains(name) { args["person"] = String(person) }
         if !args.isEmpty {
             parts.queryItems = args.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
         }
-        guard let url = parts.url else { throw Failure(status: 0, message: "That address is not a URL.") }
+        guard let url = parts.url else { throw Failure(status: 0, message: String(localized: "That address is not a URL.")) }
         var req = URLRequest(url: url)
         req.setValue("Bearer \(token ?? "")", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -114,7 +114,7 @@ struct Api {
             throw Failure(status: status, message: Api.sentence(for: bad, tool: req.url?.lastPathComponent))
         }
         guard let result = reply.result else {
-            throw Failure(status: status, message: reply.error ?? "The dashboard sent nothing.")
+            throw Failure(status: status, message: reply.error ?? String(localized: "The dashboard sent nothing."))
         }
         return result
     }
@@ -231,9 +231,9 @@ struct Api {
     /// field name is `file`, several at once are allowed, and the
     /// dashboard answers with the report it would have shown on screen.
     func importFiles(accountId: Int, files: [Upload]) async throws -> ImportReply {
-        guard !files.isEmpty else { throw Failure(status: 0, message: "Nothing to send.") }
+        guard !files.isEmpty else { throw Failure(status: 0, message: String(localized: "Nothing to send.")) }
         guard let url = URL(string: baseURL + "/api/v1/accounts/\(accountId)/import") else {
-            throw Failure(status: 0, message: "That address is not a URL.")
+            throw Failure(status: 0, message: String(localized: "That address is not a URL."))
         }
         let boundary = "wealth-" + UUID().uuidString
         var body = Data()
@@ -286,7 +286,7 @@ struct Api {
     /// string, which Python counts as true.
     func post<T: Decodable>(_ name: String, _ args: [String: Any] = [:], as type: T.Type) async throws -> T {
         guard let url = URL(string: baseURL + "/api/v1/tools/" + name) else {
-            throw Failure(status: 0, message: "That address is not a URL.")
+            throw Failure(status: 0, message: String(localized: "That address is not a URL."))
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -307,19 +307,19 @@ struct Api {
             path = []
         }
         let field = path.map { $0.intValue.map(String.init) ?? $0.stringValue }.joined(separator: ".")
-        let what = tool ?? "that call"
+        let what = tool ?? String(localized: "that call")
         return field.isEmpty
-            ? "The dashboard's answer to \(what) is not one this app can read."
-            : "The dashboard's answer to \(what) is not one this app can read (\(field))."
+            ? String(localized: "The dashboard's answer to \(what) is not one this app can read.")
+            : String(localized: "The dashboard's answer to \(what) is not one this app can read (\(field)).")
     }
 
     /// The sentence for a status the dashboard gave no words for.
     static func sentence(for status: Int) -> String {
         switch status {
-        case 401: return "This device is no longer paired — pair it again."
-        case 404: return "This dashboard does not know that address."
-        case 503: return "The dashboard has no user yet."
-        default: return "The dashboard answered \(status)."
+        case 401: return String(localized: "This device is no longer paired — pair it again.")
+        case 404: return String(localized: "This dashboard does not know that address.")
+        case 503: return String(localized: "The dashboard has no user yet.")
+        default: return String(localized: "The dashboard answered \(status).")
         }
     }
 

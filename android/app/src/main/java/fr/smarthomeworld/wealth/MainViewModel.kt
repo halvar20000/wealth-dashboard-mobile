@@ -68,7 +68,7 @@ data class TriageState(
 )
 
 /** The portfolio page: what is held, where it sits, how it has done,
- *  and the line of the net worth over the chosen window. */
+ *  and the line of the securities over the chosen window. */
 data class PortfolioState(
     val loading: Boolean = false,
     val period: String = "1y",
@@ -77,7 +77,8 @@ data class PortfolioState(
     val returns: Returns = Returns(),
     val history: History = History(),
     val baseCurrency: String = "EUR",
-    val total: Double? = null,
+    /** What the depots hold now, for the figure before the line loads. */
+    val securities: Double? = null,
     val error: String? = null,
 )
 
@@ -311,7 +312,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         loading = false, period = period, holdings = p.holdings,
                         allocation = p.allocation, returns = p.returns, history = p.history,
                         baseCurrency = p.baseCurrency,
-                        total = _state.value.snapshot?.netWorth?.total)
+                        securities = _state.value.snapshot?.netWorth?.securities)
                 }
                 .onFailure { e ->
                     _portfolio.value = _portfolio.value.copy(

@@ -69,9 +69,10 @@ enum Round {
         let ccy = s.currency
         if let below = s.upcoming?.belowZero {
             let account = below.account ?? String(localized: "An account")
+            let payment = below.name ?? String(localized: "A payment")
             return ("below:\(below.date ?? "")",
                     String(localized: "\(account) runs out on \(Fmt.day(below.date))"),
-                    String(localized: "\(below.name ?? "A payment") takes it to \(Fmt.money(below.running, ccy))."))
+                    String(localized: "\(payment) takes it to \(Fmt.money(below.running, ccy))."))
         }
         let red = s.sync?.red ?? 0
         if red > 0 {
