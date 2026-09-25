@@ -44,7 +44,8 @@ fun PortfolioScreen(
     onRefresh: () -> Unit,
 ) {
     var view by rememberSaveable { mutableStateOf(0) }   // 0 Wertpapiere, 1 Aufteilung, 2 Konten
-    val line = state.history.points.mapNotNull { it.netWorth }
+    val known = state.history.points.filter { it.netWorth != null }
+    val line = known.map { it.netWorth!! }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -80,7 +81,7 @@ fun PortfolioScreen(
                     CircularProgressIndicator()
                 }
             } else if (line.size > 1) {
-                LineChart(line)
+                LineChart(line, dates = known.map { it.date }, currency = state.baseCurrency)
             } else {
                 Box(Modifier.fillMaxWidth().height(170.dp), Alignment.Center) {
                     Text("Für diesen Zeitraum gibt es noch keine Punkte.",

@@ -223,7 +223,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 }
                 else -> OverviewScreen(
                     snapshot = snap, at = state.at, stale = state.stale, error = state.error,
-                    history = portfolio.history.points.mapNotNull { it.netWorth },
+                    history = portfolio.history.points,
                     excluded = state.excluded,
                     onToggleClass = { vm.toggleClass(it) },
                     onAccounts = { tab = Tab.Portfolio; vm.loadPortfolio() },
