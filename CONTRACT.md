@@ -77,6 +77,7 @@ is the authority; the table below is what the clients actually use.
 | `apply_rules` | re-runs every rule over everything (dashboard ≥ 0.72.6) | after a fix |
 | `cashflow` | income, spending and investment per month, the categories behind them, the average (dashboard ≥ 0.73.0) | the cash-flow page |
 | `refresh_market` | quotes every holding again and refetches the ECB rates — no bank touched — and answers with the fresh net worth (dashboard ≥ 0.73.0) | the "did the markets move" button |
+| `imports` / `undo_import` | what went into an account, and putting one file's rows back (dashboard ≥ 0.74.0) | the Undo after a share |
 
 Import from the share sheet is not a tool but its own endpoint:
 

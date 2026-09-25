@@ -29,6 +29,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 9 | Swipe triage — whose spending | ✅ 0.2.0 | ✅ 1.2.2 | needs dashboard ≥ 0.72.4 |
 | 10 | Share a statement into an account | ✅ 0.1.0 | ✅ 1.2.2 | Android share sheet / iOS share extension |
 | 10a | "Open with" a downloaded file, not only "share" | ✅ 1.2.3 | — | Android: ACTION_VIEW on content:// and file://. iOS: `CFBundleDocumentTypes` plus `LSSupportsOpeningDocumentsInPlace`, so a download in Safari or Files offers Wealth |
+| 10b | Undo an import from the app | ✅ 1.2.4 | — | `undo_import`, dashboard ≥ 0.74.0; the button sits in the report after a share |
 | 11 | Home-screen widget: net worth | ✅ 0.2.0 | ✅ 1.2.2 | Glance / WidgetKit, drawn from the cache |
 | 12 | Background round + local notices | ✅ 0.2.0 | ✅ 1.2.2 | WorkManager / BGAppRefreshTask, every few hours |
 | 13 | Quick tile "sync now" | ✅ 0.2.0 | n/a | iOS has no equivalent; a Control (iOS 18) is the nearest |
@@ -43,6 +44,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 A client feature that needs a dashboard newer than the user's must hide
 itself rather than fail. Current floors:
 
+- row 10b (undo an import) — dashboard **0.74.0**
 - rows 3c and 17 (market refresh, cash flow) — dashboard **0.73.0**
 - row 9 (whose spending) — dashboard **0.72.4**
 - everything else — **0.60** and up
