@@ -64,7 +64,7 @@ is the authority; the table below is what the clients actually use.
 | Tool | Gives | Used for |
 |---|---|---|
 | `snapshot` | net worth and its parts, return per period, accounts, what is due, how many rows wait, sync health | the overview, the widget, one round trip on start |
-| `net_worth_history` | `points[]` of `{date, net_worth}` over `1m,3m,6m,ytd,1y,all` | the line chart |
+| `net_worth_history` | `points[]` of `{date, net_worth, securities}` over `1m,3m,6m,ytd,1y,all` | `net_worth` is the overview line, `securities` the portfolio line (null on days taken from another app) |
 | `holdings` | per security: isin, name, symbol, quantity, `net_invested`, price, `value_base`, accounts | the portfolio list |
 | `allocation` | `dimensions.asset_class.rows[]` of `{key, value, share, target, drift}`, plus `cash`, `total` | the ring |
 | `performance` | TWR/MWR for `all`, `ytd`, `1y`, and per holding under its ISIN | the return beside each position |
