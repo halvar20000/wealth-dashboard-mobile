@@ -175,6 +175,21 @@ final class WealthTests: XCTestCase {
         XCTAssertEqual(s.figure(excluding: ["Real estate", "Equity"]), 200)
     }
 
+    // `by_class` lists what is owned, not what is owed: the debt goes back
+    // in as a line of its own, or one untick drops every mortgage.
+    func testFigureCountsTheDebt() {
+        var s = Snapshot()
+        s.netWorth = NetWorth(netWorth: 1_457_945, debt: 54_368, byClass: [
+            ClassValue(name: "Equity", value: 1_012_313), ClassValue(name: "Real estate", value: 500_000),
+        ])
+        XCTAssertEqual(s.classes.last, ClassValue(name: Snapshot.debtClass, value: -54_368))
+        XCTAssertEqual(s.figure(excluding: []), 1_457_945)
+        XCTAssertEqual(s.figure(excluding: ["Equity"]), 500_000 - 54_368)
+        XCTAssertEqual(s.figure(excluding: ["Equity", Snapshot.debtClass]), 500_000)
+        s.netWorth?.debt = 0
+        XCTAssertEqual(s.classes.count, 2)
+    }
+
     func testExcludedClassesSurviveAndAreForgotten() throws {
         let suite = "test." + UUID().uuidString
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -227,6 +242,19 @@ final class WealthTests: XCTestCase {
         let request = try XCTUnwrap(StubProtocol.lastRequest)
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.url?.path, "/api/v1/tools/refresh_market")
+    }
+
+    // A refused quote is named with its reason, beside the figures.
+    func testMarketNoteNamesWhatWasNotQuoted() throws {
+        let json = #"{"prices": {"priced": 10, "failed": [{"isin": "IE00B4L5Y983", "error": "429 Too Many Requests"}, {"isin": "DE0005190003"}, {"isin": "US0378331005", "error": "x"}]}, "rates": {"error": "ECB down"}}"#
+        let market = try Api.decoder.decode(Market.self, from: Data(json.utf8))
+        let note = try XCTUnwrap(market.note)
+        XCTAssertTrue(note.contains("IE00B4L5Y983: 429 Too Many Requests"), note)
+        XCTAssertTrue(note.contains("DE0005190003"), note)
+        XCTAssertFalse(note.contains("US0378331005"), note)
+        XCTAssertTrue(note.contains("ECB down"), note)
+        let clean = try Api.decoder.decode(Market.self, from: Data(#"{"prices": {"priced": 3, "failed": []}}"#.utf8))
+        XCTAssertNil(clean.note)
     }
 
     // A refresh that went through is not an error because a field in its
@@ -334,9 +362,59 @@ final class WealthTests: XCTestCase {
         XCTAssertEqual(reply.result?.inserted, 12)
         XCTAssertEqual(reply.result?.notes, ["Two rows kept out."])
         XCTAssertEqual(reply.account?.name, "Giro")
+        XCTAssertEqual(reply.result?.imports, [1])
         XCTAssertEqual(StubProtocol.lastRequest?.url?.path, "/api/v1/accounts/3/import")
         let body = String(decoding: try XCTUnwrap(StubProtocol.lastBody), as: UTF8.self)
         XCTAssertTrue(body.contains(#"name="file"; filename="a.csv""#), body)
+    }
+
+    // The ids go as JSON numbers, and the answer is how many rows went.
+    func testUndoImportPostsNumbers() async throws {
+        StubProtocol.reply = (200, #"{"ok": true, "result": {"account_id": 3, "import_id": 41, "removed": 12}}"#)
+        let api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
+        let removed = try await api.undoImport(accountId: 3, importId: 41)
+        XCTAssertEqual(removed, 12)
+        XCTAssertEqual(StubProtocol.lastRequest?.httpMethod, "POST")
+        XCTAssertEqual(StubProtocol.lastRequest?.url?.path, "/api/v1/tools/undo_import")
+        let sent = try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap(StubProtocol.lastBody)) as? [String: Any])
+        XCTAssertEqual(sent["account_id"] as? Int, 3)
+        XCTAssertEqual(sent["import_id"] as? Int, 41)
+    }
+
+    // Undo shows only where it would do something, on a dashboard that
+    // knows how.
+    @MainActor
+    func testUndoOfferedOnlyWhenSomethingCame() throws {
+        func reply(_ inserted: Int, _ imports: String) throws -> ImportReply {
+            try Api.decoder.decode(ImportReply.self, from: Data(#"{"ok": true, "account": {"id": 3}, "result": {"inserted": \#(inserted), "imports": \#(imports)}}"#.utf8))
+        }
+        let state = ShareState()
+        state.serverVersion = "0.74.0"
+        state.reply = try reply(12, "[4, 5]")
+        XCTAssertEqual(state.undoable?.account, 3)
+        XCTAssertEqual(state.undoable?.imports, [4, 5])
+        state.reply = try reply(0, "[6]")
+        XCTAssertNil(state.undoable)
+        state.reply = try reply(12, "[]")
+        XCTAssertNil(state.undoable)
+        state.reply = try reply(12, "[4]")
+        state.serverVersion = "0.73.9"
+        XCTAssertNil(state.undoable)
+    }
+
+    @MainActor
+    func testUndoTakesBackNewestFirst() async throws {
+        StubProtocol.reply = (200, #"{"ok": true, "result": {"removed": 2}}"#)
+        let state = ShareState()
+        state.api = Api(baseURL: "https://example.com", token: "t", session: StubProtocol.session)
+        state.serverVersion = "0.74.0"
+        state.reply = try Api.decoder.decode(ImportReply.self, from: Data(#"{"ok": true, "account": {"id": 3}, "result": {"inserted": 4, "imports": [4, 5]}}"#.utf8))
+        await state.undo()
+        XCTAssertEqual(state.undone, 4)
+        XCTAssertNil(state.error)
+        // The last call was the older import: the newer went first.
+        let sent = try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap(StubProtocol.lastBody)) as? [String: Any])
+        XCTAssertEqual(sent["import_id"] as? Int, 4)
     }
 
     func testImportRefusalCarriesTheSentence() async {

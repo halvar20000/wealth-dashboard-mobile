@@ -251,14 +251,53 @@ extension KeyedDecodingContainer {
 // MARK: What counts towards the figure at the top (contract rule 8)
 
 extension Snapshot {
+    /// The name the debt goes by among the classes — and so in the set
+    /// of unticked ones.
+    static let debtClass = "Debt"
+
+    /// What can be ticked: the classes, and the debt as a line of its own.
+    ///
+    /// `by_class` carries what is owned and nothing that is owed — the
+    /// dashboard draws it as a ring, and a ring has no negative slice.
+    /// The net worth it reports does subtract the debt, so a sum of the
+    /// classes alone is too high by every mortgage in the house. The
+    /// debt goes back in here, negative, and can be unticked like the rest.
+    var classes: [ClassValue] {
+        let owned = netWorth?.byClass ?? []
+        guard let debt = netWorth?.debt, debt > 0 else { return owned }
+        return owned + [ClassValue(name: Snapshot.debtClass, value: -debt)]
+    }
+
     /// The net worth less the unticked classes. With nothing unticked it
     /// is the dashboard's own figure, not a sum of the classes: the two
     /// can differ by a rounding, and the number on the phone must match
     /// the number in the browser.
     func figure(excluding excluded: Set<String>) -> Double? {
-        let classes = netWorth?.byClass ?? []
+        let classes = self.classes
         guard classes.contains(where: { excluded.contains($0.name ?? "") }) else { return netWorth?.total }
         return classes.filter { !excluded.contains($0.name ?? "") }.reduce(0) { $0 + ($1.value ?? 0) }
+    }
+}
+
+extension Market {
+    /// What the provider would not quote, and why — nil when everything
+    /// came. A refused quote is not a failed refresh: the other prices
+    /// arrived and the net worth with them, so this is said beside the
+    /// figures rather than instead of them.
+    var note: String? {
+        var parts: [String] = []
+        let misses = prices?.failed ?? []
+        if !misses.isEmpty {
+            var head = misses.prefix(2)
+                .map { m in (m.isin ?? "?") + (m.error.map { ": \($0)" } ?? "") }
+                .joined(separator: "; ")
+            if misses.count > 2 { head += " " + String(localized: "and \(misses.count - 2) more") }
+            parts.append(String(localized: "Not quoted: \(head)"))
+        }
+        if let error = rates?.error, !error.isEmpty {
+            parts.append(String(localized: "Exchange rates: \(error)"))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }
 
@@ -453,6 +492,9 @@ struct ImportReply: Decodable {
         /// loosely: they are shown, never relied on.
         var problems: [String]?
         var notes: [String]?
+        /// The import ids this upload created, one per file — what
+        /// `undo_import` takes to put the file back.
+        var imports: [Int]?
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -463,13 +505,21 @@ struct ImportReply: Decodable {
             parsed = c.loose(Int.self, .parsed)
             problems = c.loose([String].self, .problems)
             notes = c.loose([String].self, .notes)
+            imports = c.loose([Int].self, .imports)
         }
         private enum CodingKeys: String, CodingKey {
-            case label, inserted, duplicates, skipped, parsed, problems, notes
+            case label, inserted, duplicates, skipped, parsed, problems, notes, imports
         }
     }
     var ok: Bool?
     var account: Target?
     var result: Report?
     var error: String?
+}
+
+/// What `undo_import` answered: how many rows went (dashboard ≥ 0.74.0).
+struct UndoneImport: Decodable {
+    var accountId: Int?
+    var importId: Int?
+    var removed: Int?
 }

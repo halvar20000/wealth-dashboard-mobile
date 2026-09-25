@@ -23,6 +23,7 @@ final class ShareViewController: UIViewController {
         state.paired = store.paired
         state.accounts = store.cached()?.snapshot.accounts ?? []
         state.api = store.api()
+        state.serverVersion = store.serverVersion
         state.close = { [weak self] in
             self?.extensionContext?.completeRequest(returningItems: nil)
         }
@@ -66,114 +67,6 @@ final class ShareViewController: UIViewController {
                         ? name : name + "." + url.pathExtension
                 } ?? url.lastPathComponent
                 done.resume(returning: Api.Upload(name: name, mime: type.preferredMIMEType, data: data))
-            }
-        }
-    }
-}
-
-@Observable
-final class ShareState {
-    var paired = false
-    var accounts: [Account] = []
-    var files: [Api.Upload] = []
-    var reading = true
-    var sending = false
-    var reply: ImportReply?
-    var error: String?
-    var api = Api(baseURL: "", token: nil)
-    var close: () -> Void = {}
-
-    @MainActor
-    func send(to account: Account) async {
-        sending = true
-        error = nil
-        defer { sending = false }
-        do {
-            reply = try await api.importFiles(accountId: account.id, files: files)
-        } catch {
-            self.error = (error as? Api.Failure)?.message ?? error.localizedDescription
-        }
-    }
-}
-
-/// Which account does this statement belong to? — and then what the
-/// dashboard made of it. Three states, no more: pick, sending, done.
-struct ShareView: View {
-    @Bindable var state: ShareState
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    Text(state.files.map(\.name).joined(separator: ", ").isEmpty
-                         ? (state.reading ? "…" : String(localized: "Nothing was shared."))
-                         : state.files.map(\.name).joined(separator: ", "))
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-                content
-            }
-            .navigationTitle(state.reply == nil ? "Import into…" : "Imported")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: state.reply == nil ? .cancellationAction : .confirmationAction) {
-                    Button(state.reply == nil ? "Cancel" : "Done") { state.close() }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var content: some View {
-        if !state.paired {
-            Text("Pair this phone with your dashboard first — open the app and enter the six-digit code from Settings → Assistants.")
-        } else if state.reading {
-            ProgressView()
-        } else if state.files.isEmpty {
-            Text("The app that shared this sent no file.")
-        } else if let reply = state.reply {
-            report(reply)
-        } else if state.sending {
-            HStack(spacing: 12) {
-                ProgressView()
-                Text("Sending to the dashboard…")
-            }
-        } else if state.accounts.isEmpty {
-            Text("No accounts yet — open the app once so it knows them.")
-        } else {
-            if let error = state.error {
-                Section {
-                    Text(error).foregroundStyle(.red)
-                }
-            }
-            Section("Account") {
-                ForEach(state.accounts) { a in
-                    Button {
-                        Task { await state.send(to: a) }
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(a.title).foregroundStyle(Color.primary)
-                            let detail = [a.type, a.bank].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
-                            if !detail.isEmpty {
-                                Text(detail).font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// What came back, in the dashboard's own words. A file that brought
-    /// nothing new is not a failure — a statement overlapping the last
-    /// one is the normal case — so the count is stated plainly and the
-    /// server's notes are repeated underneath.
-    private func report(_ reply: ImportReply) -> some View {
-        let r = reply.result
-        return Section {
-            Text(r?.label ?? String(localized: "Read")).fontWeight(.semibold)
-            Text("\(r?.inserted ?? 0) new, \(r?.duplicates ?? 0) already there")
-            if let name = reply.account?.name { Text(name).foregroundStyle(.secondary) }
-            ForEach(Array(((r?.notes ?? []) + (r?.problems ?? [])).prefix(4).enumerated()), id: \.offset) { _, line in
-                Text(line).font(.footnote).foregroundStyle(.secondary)
             }
         }
     }
