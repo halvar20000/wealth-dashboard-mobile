@@ -369,8 +369,12 @@ struct History: Codable {
 
     /// The net worth, without the days nothing was recorded for.
     var line: [Double] { (points ?? []).compactMap(\.netWorth) }
+    /// The day of each value in `line`, in the same order.
+    var lineDates: [String] { (points ?? []).filter { $0.netWorth != nil }.map { $0.date ?? "" } }
     /// The securities alone, for the portfolio's line.
     var securities: [Double] { (points ?? []).compactMap(\.securities) }
+    /// The day of each value in `securities`, in the same order.
+    var securitiesDates: [String] { (points ?? []).filter { $0.securities != nil }.map { $0.date ?? "" } }
 }
 
 struct AllocationRow: Codable, Hashable {

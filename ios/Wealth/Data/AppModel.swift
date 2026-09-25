@@ -25,6 +25,8 @@ final class AppModel {
     /// The net worth over the last year, for the line under the figure.
     /// Empty until it has been fetched — the overview works without it.
     private(set) var netWorthLine: [Double] = []
+    /// The day of each value in `netWorthLine`, for the tooltip.
+    private(set) var netWorthDates: [String] = []
     /// Asset classes the viewer has unticked; the figure leaves them out.
     private(set) var excluded: Set<String>
     private(set) var serverVersion: String?
@@ -111,6 +113,7 @@ final class AppModel {
         // gives the figure, and a failure here keeps yesterday's line.
         if let history = try? await store.api().history(period: "1y") {
             netWorthLine = history.line
+            netWorthDates = history.lineDates
         }
     }
 
@@ -309,6 +312,7 @@ final class AppModel {
         excluded = []
         snapshot = nil
         netWorthLine = []
+        netWorthDates = []
         readAt = nil
         stale = true
         error = nil

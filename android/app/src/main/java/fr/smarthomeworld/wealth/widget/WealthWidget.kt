@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalContext
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -34,6 +35,7 @@ import fr.smarthomeworld.wealth.data.Repo
 import fr.smarthomeworld.wealth.data.Snapshot
 import fr.smarthomeworld.wealth.data.Store
 import fr.smarthomeworld.wealth.ui.Fmt
+import fr.smarthomeworld.wealth.R
 
 /**
  * The figure on the home screen.
@@ -59,6 +61,7 @@ class WealthWidget : GlanceAppWidget() {
 
 @Composable
 private fun Body(snap: Snapshot?, at: Long) {
+    val context = LocalContext.current
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -69,7 +72,7 @@ private fun Body(snap: Snapshot?, at: Long) {
         verticalAlignment = Alignment.Top,
     ) {
         Text(
-            "Net worth",
+            context.getString(R.string.net_worth),
             style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurfaceVariant),
         )
         Text(
@@ -84,9 +87,9 @@ private fun Body(snap: Snapshot?, at: Long) {
             val month = snap?.performance?.get("1m")?.twr
             Text(
                 listOfNotNull(
-                    today?.let { "today ${Fmt.percent(it)}" },
-                    month?.let { "30 d ${Fmt.percent(it)}" },
-                ).joinToString(" · ").ifBlank { "no figures yet" },
+                    today?.let { context.getString(R.string.widget_today, Fmt.percent(it)) },
+                    month?.let { context.getString(R.string.widget_30d, Fmt.percent(it)) },
+                ).joinToString(" · ").ifBlank { context.getString(R.string.widget_no_figures) },
                 style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurfaceVariant),
             )
         }
@@ -94,13 +97,14 @@ private fun Body(snap: Snapshot?, at: Long) {
         if (queue > 0) {
             Spacer(GlanceModifier.height(6.dp))
             Text(
-                "$queue waiting to be filed",
+                context.resources.getQuantityString(R.plurals.widget_waiting, queue, queue),
                 style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.primary),
             )
         }
         Spacer(GlanceModifier.height(8.dp))
         Text(
-            if (at > 0) "as of ${Fmt.since(at)} — tap to refresh" else "tap to open the app",
+            if (at > 0) context.getString(R.string.widget_as_of, Fmt.since(context, at))
+            else context.getString(R.string.widget_tap_open),
             style = TextStyle(fontSize = 11.sp, color = GlanceTheme.colors.onSurfaceVariant),
             modifier = GlanceModifier.clickable(actionRunCallback<RefreshWidget>()),
         )

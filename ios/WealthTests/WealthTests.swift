@@ -320,6 +320,7 @@ final class WealthTests: XCTestCase {
         let history = try Api.decoder.decode(History.self, from: Data(json.utf8))
         XCTAssertEqual(history.line, [900, 1000, 1100])
         XCTAssertEqual(history.securities, [600, 700])
+        XCTAssertEqual(history.securitiesDates, ["2026-01-02", "2026-01-03"])
     }
 
     // MARK: The triage

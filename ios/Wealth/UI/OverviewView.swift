@@ -94,7 +94,7 @@ struct OverviewView: View {
                 // The net worth over the last year, as on Android. It is
                 // the whole figure; the portfolio tab draws the depots.
                 if model.netWorthLine.count > 1 {
-                    LineChart(values: model.netWorthLine)
+                    LineChart(values: model.netWorthLine, dates: model.netWorthDates, currency: ccy)
                         .frame(height: 150)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
