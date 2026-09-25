@@ -22,11 +22,16 @@ fun ShareScreen(
     accounts: List<Account>,
     files: List<String>,
     onSend: (Account, (ImportReply?, String?) -> Unit) -> Unit,
+    /** Account id and the import ids to take back; answers with how
+     *  many rows went, or why not. */
+    onUndo: (Int, List<Int>, (Int?, String?) -> Unit) -> Unit = { _, _, done -> done(null, null) },
     onClose: () -> Unit,
 ) {
     var sending by remember { mutableStateOf(false) }
     var reply by remember { mutableStateOf<ImportReply?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    var undoing by remember { mutableStateOf(false) }
+    var undone by remember { mutableStateOf<Int?>(null) }
 
     Scaffold(topBar = {
         TopAppBar(
@@ -49,7 +54,34 @@ fun ShareScreen(
                     Text(error!!, color = MaterialTheme.colorScheme.error)
                     TextButton(onClick = { error = null }) { Text("Try another account") }
                 }
-                reply != null -> Report(reply!!)
+                reply != null -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Report(reply!!)
+                    val ids = reply!!.result?.imports.orEmpty()
+                    val account = reply!!.account?.id
+                    when {
+                        undone != null -> Text(
+                            "Zurückgenommen — $undone Zeile(n) wieder entfernt.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        // An import that brought nothing has nothing to
+                        // take back; saying so beats a button that does
+                        // nothing.
+                        ids.isNotEmpty() && account != null && (reply!!.result?.inserted ?: 0) > 0 ->
+                            OutlinedButton(
+                                onClick = {
+                                    undoing = true
+                                    onUndo(account, ids) { n, why ->
+                                        undoing = false
+                                        undone = n
+                                        if (why != null) error = why
+                                    }
+                                },
+                                enabled = !undoing,
+                            ) {
+                                Text(if (undoing) "Wird zurückgenommen…" else "Import rückgängig machen")
+                            }
+                    }
+                }
                 sending -> Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)

@@ -165,6 +165,16 @@ data class ImportResult(
     val problems: List<String> = emptyList(),
     val notes: List<String> = emptyList(),
     val unrecognised: List<String> = emptyList(),
+    /** The import ids this upload created — what `undo_import` takes
+     *  to put the file back where it came from. */
+    val imports: List<Int> = emptyList(),
+)
+
+@Serializable
+data class UndoneImport(
+    @SerialName("account_id") val accountId: Int = 0,
+    @SerialName("import_id") val importId: Int = 0,
+    val removed: Int = 0,
 )
 
 /** The queue: a row with no category, and the app's own first guess. */

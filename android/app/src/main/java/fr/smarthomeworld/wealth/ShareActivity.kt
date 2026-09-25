@@ -55,6 +55,12 @@ class ShareActivity : FragmentActivity() {
                             onDone(result.getOrNull(), result.exceptionOrNull()?.message)
                         }
                     },
+                    onUndo = { accountId, importIds, onDone ->
+                        lifecycleScope.launch {
+                            val result = runCatching { repo.undoImport(accountId, importIds) }
+                            onDone(result.getOrNull(), result.exceptionOrNull()?.message)
+                        }
+                    },
                     onClose = { finish() },
                 )
             }

@@ -188,6 +188,15 @@ class Api(private val baseUrl: String, private val token: String?) {
         return reply.result ?: Returns()
     }
 
+    /** Put a file import back: every row it brought, nothing else.
+     *  Needs a dashboard on 0.74.0 or newer. */
+    fun undoImport(accountId: Int, importId: Int): Int {
+        val text = post("/api/v1/tools/undo_import", mapOf(
+            "account_id" to accountId.toString(), "import_id" to importId.toString()))
+        val reply = json.decodeFromString(ToolReply.serializer(UndoneImport.serializer()), text)
+        return reply.result?.removed ?: throw Failure(200, reply.error ?: "Das Dashboard sagte nichts.")
+    }
+
     /** Income and spending per month, the dashboard's own arithmetic. */
     fun cashflow(months: Int = 13): Cashflow {
         val text = get("/api/v1/tools/cashflow", mapOf("months" to months.toString()))

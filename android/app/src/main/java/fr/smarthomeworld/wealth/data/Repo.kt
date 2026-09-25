@@ -62,6 +62,13 @@ class Repo(private val store: Store) {
         store.api().history(period)
     }
 
+    /** Take an upload back. Several files in one share make several
+     *  imports; all of them go, newest first. */
+    suspend fun undoImport(accountId: Int, importIds: List<Int>): Int = withContext(Dispatchers.IO) {
+        val api = store.api()
+        importIds.sortedDescending().sumOf { api.undoImport(accountId, it) }
+    }
+
     // ── Cash flow, and the cheap refresh ─────────────────────────
 
     suspend fun cashflow(months: Int = 13): Cashflow = withContext(Dispatchers.IO) {
