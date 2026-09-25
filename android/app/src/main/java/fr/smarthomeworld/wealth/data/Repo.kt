@@ -11,19 +11,34 @@ import kotlinx.coroutines.withContext
  */
 class Repo(private val store: Store) {
 
-    data class Loaded(val snapshot: Snapshot, val at: Long, val stale: Boolean)
+    /** `person` is whose figures these are: null for the household. */
+    data class Loaded(val snapshot: Snapshot, val at: Long, val stale: Boolean, val person: Int? = null)
 
-    fun cached(): Loaded? = store.cached()?.let { (snap, at) -> Loaded(snap, at, true) }
+    fun cached(): Loaded? = store.cached()?.let { (snap, at) -> Loaded(snap, at, true, store.person) }
 
     suspend fun refresh(days: Int = 30): Loaded = withContext(Dispatchers.IO) {
-        val api = store.api()
-        val snapshot = api.snapshot(days)
-        store.cache(Api.json.encodeToString(Snapshot.serializer(), snapshot))
-        Loaded(snapshot, System.currentTimeMillis(), false)
+        // Whose figures are asked for is fixed now: a switch while this
+        // is on its way must not file them under the new name.
+        val whose = store.person
+        val snapshot = store.api().snapshot(days)
+        if (whose == store.person) {
+            store.cache(Api.json.encodeToString(Snapshot.serializer(), snapshot), whose)
+        }
+        Loaded(snapshot, System.currentTimeMillis(), false, whose)
     }
 
     suspend fun transactions(accountId: Int? = null, query: String? = null, limit: Int = 100) =
         withContext(Dispatchers.IO) { store.api().transactions(accountId, query, limit) }
+
+    /** The household, for the switch at the top. A dashboard older than
+     *  0.72.4 has no `people`; it answers 404 and the switch stays away. */
+    suspend fun people(): List<Person> = withContext(Dispatchers.IO) {
+        try {
+            store.api().people()
+        } catch (e: Api.Failure) {
+            if (e.status == 404) emptyList() else throw e
+        }
+    }
 
     suspend fun importFiles(accountId: Int, files: List<Api.Upload>): ImportReply =
         withContext(Dispatchers.IO) { store.api().importFiles(accountId, files) }

@@ -12,6 +12,8 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Refresh
@@ -31,6 +33,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.smarthomeworld.wealth.data.Account
+import fr.smarthomeworld.wealth.data.Person
 import fr.smarthomeworld.wealth.ui.*
 
 class MainActivity : FragmentActivity() {
@@ -111,6 +114,12 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     Text(account?.name ?: heading)
                 },
                 actions = {
+                    // Whose picture, as the dashboard's own switch has it:
+                    // everyone, or one person's accounts. Hidden on a
+                    // dashboard that knows nobody (or is too old to say).
+                    if (state.people.isNotEmpty()) {
+                        PersonSwitch(state.people, state.person, state.personName) { vm.setPerson(it) }
+                    }
                     // Two refreshes, and the difference matters: the
                     // left one re-reads what the dashboard already
                     // knows, the right one makes it fetch quotes and
@@ -236,6 +245,38 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
             }
             if (state.loading && snap != null) {
                 LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
+            }
+        }
+    }
+}
+
+/** A button naming whose figures these are, and a menu to change it. */
+@Composable
+private fun PersonSwitch(
+    people: List<Person>,
+    chosen: Int?,
+    chosenName: String?,
+    onPick: (Person?) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { open = true }) {
+            Icon(Icons.Default.Person, contentDescription = stringResource(R.string.person_switch), modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(if (chosen == null) stringResource(R.string.person_everyone) else people.firstOrNull { it.id == chosen }?.name ?: chosenName ?: "#$chosen", maxLines = 1)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.person_everyone)) },
+                onClick = { open = false; onPick(null) },
+                trailingIcon = { if (chosen == null) Icon(Icons.Default.Check, null) },
+            )
+            people.forEach { p ->
+                DropdownMenuItem(
+                    text = { Text(p.name) },
+                    onClick = { open = false; onPick(p) },
+                    trailingIcon = { if (chosen == p.id) Icon(Icons.Default.Check, null) },
+                )
             }
         }
     }

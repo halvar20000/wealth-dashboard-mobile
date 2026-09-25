@@ -79,6 +79,39 @@ final class WealthTests: XCTestCase {
         XCTAssertNil(store.cached())
     }
 
+    // One person's figures are never drawn under another's name.
+    func testCacheBelongsToWhoseFiguresItHolds() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = Store(service: "test." + UUID().uuidString, directory: dir)
+        defer { store.forget() }
+        var s = Snapshot()
+        s.baseCurrency = "USD"
+        store.cache(s)
+        XCTAssertNotNil(store.cached())
+        store.person = 2
+        XCTAssertNil(store.cached())
+        store.cache(s)
+        XCTAssertEqual(store.cached()?.person, 2)
+        store.person = nil
+        XCTAssertNil(store.cached())
+    }
+
+    // The person goes to the tools that take it, and to no other: a tool
+    // without the argument answers 400.
+    func testPersonOnlyWhereTheToolTakesIt() async throws {
+        let api = Api(baseURL: "https://example.com", token: "t", person: 3, session: StubProtocol.session)
+        StubProtocol.reply = (200, #"{"ok": true, "result": {}}"#)
+        _ = try await api.snapshot()
+        var items = URLComponents(url: try XCTUnwrap(StubProtocol.lastRequest?.url),
+                                  resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertEqual(items.first { $0.name == "person" }?.value, "3")
+        StubProtocol.reply = (200, #"{"ok": true, "result": []}"#)
+        _ = try await api.categories()
+        items = URLComponents(url: try XCTUnwrap(StubProtocol.lastRequest?.url),
+                              resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertNil(items.first { $0.name == "person" })
+    }
+
     // CONTRACT.md → Pairing: both schemes, a path prefix kept.
     func testNormalise() {
         XCTAssertEqual(Api.normalise("  dashboard.example.com/ "), "https://dashboard.example.com")

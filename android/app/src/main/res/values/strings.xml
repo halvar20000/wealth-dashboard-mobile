@@ -198,4 +198,7 @@
         <item quantity="one">%1$d waiting to be filed</item>
         <item quantity="other">%1$d waiting to be filed</item>
     </plurals>
+    <!-- The person switch in the top bar, as on the dashboard's own pages. -->
+    <string name="person_everyone">Everyone</string>
+    <string name="person_switch">Whose accounts</string>
 </resources>

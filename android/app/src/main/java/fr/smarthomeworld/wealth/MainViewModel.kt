@@ -47,6 +47,11 @@ data class UiState(
     val excluded: Set<String> = emptySet(),
     /** Set while the cheap refresh runs, so the button can say so. */
     val pricing: Boolean = false,
+    /** The household as the dashboard knows it; empty hides the switch. */
+    val people: List<Person> = emptyList(),
+    /** Whose figures are shown: null for everyone. */
+    val person: Int? = null,
+    val personName: String? = null,
 )
 
 data class TriageState(
@@ -113,6 +118,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             stale = cached != null,
             serverName = store.serverName,
             excluded = store.excludedClasses,
+            person = store.person,
+            personName = store.personName,
         )
         if (store.paired) { refresh(); loadHistory() }
         // A round that was switched on survives a reboot and an update;
@@ -141,9 +148,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun refresh() {
         if (!store.paired) return
         _state.value = _state.value.copy(loading = true, error = null)
+        loadPeople()
         viewModelScope.launch {
             runCatching { repo.refresh() }
                 .onSuccess {
+                    // Somebody else's by now: the switch moved while this
+                    // was on its way, and its own refresh is coming.
+                    if (it.person != store.person) return@onSuccess
                     _state.value = _state.value.copy(
                         loading = false, snapshot = it.snapshot, at = it.at, stale = false, error = null)
                     // The home screen draws the same cache; redraw it now,
@@ -182,6 +193,45 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         store.forget()
         _txns.value = null
         _state.value = UiState()
+    }
+
+    // ── Whose figures ────────────────────────────────────────────
+
+    /** Who the dashboard knows. Asked beside every refresh, because a
+     *  person added or removed in the browser should show here too. */
+    private fun loadPeople() {
+        viewModelScope.launch {
+            val people = runCatching { repo.people() }.getOrElse { return@launch }
+            _state.value = _state.value.copy(people = people)
+            // The person this phone was showing is gone from the
+            // dashboard: fall back to everyone rather than ask forever
+            // for somebody it no longer knows.
+            val chosen = store.person
+            if (chosen != null && people.none { it.id == chosen }) setPerson(null)
+        }
+    }
+
+    /** Show one person's accounts, or everyone's (null). Every page
+     *  that has been loaded is asked again under the new lens; the old
+     *  figures go, since they were somebody else's. */
+    fun setPerson(person: Person?) {
+        if (person?.id == store.person) return
+        store.person = person?.id
+        store.personName = person?.name
+        _state.value = _state.value.copy(
+            person = person?.id, personName = person?.name,
+            snapshot = repo.cached()?.snapshot, at = repo.cached()?.at ?: 0L)
+        val hadPortfolio = _portfolio.value.holdings.isNotEmpty()
+        val hadCashflow = _cashflow.value.flow != null
+        val hadTriage = _triage.value.rows.isNotEmpty()
+        _portfolio.value = PortfolioState(period = _portfolio.value.period)
+        _cashflow.value = CashflowState(months = _cashflow.value.months)
+        refresh()
+        loadHistory()
+        if (hadPortfolio) loadPortfolio()
+        if (hadCashflow) loadCashflow()
+        if (hadTriage) loadTriage(_triage.value.owning)
+        if (_txns.value != null) loadTransactions(lastTxns.first, lastTxns.second)
     }
 
     // ── Cash flow ────────────────────────────────────────────────
@@ -340,7 +390,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** What the rows tab last asked for, to ask again after a switch. */
+    private var lastTxns: Pair<Int?, String?> = null to null
+
     fun loadTransactions(accountId: Int? = null, query: String? = null) {
+        lastTxns = accountId to query
         _txns.value = null
         viewModelScope.launch {
             runCatching { repo.transactions(accountId, query) }

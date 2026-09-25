@@ -39,6 +39,7 @@ struct TransactionsView: View {
             await load()
         }
         .refreshable { await load() }
+        .onChange(of: model.person) { Task { await load() } }
         .navigationTitle(account?.title ?? String(localized: "Rows"))
         .navigationBarTitleDisplayMode(.inline)
     }

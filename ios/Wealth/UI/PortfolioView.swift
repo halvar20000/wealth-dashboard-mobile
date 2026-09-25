@@ -72,6 +72,7 @@ struct PortfolioView: View {
             }
             .navigationTitle("Portfolio")
             .navigationBarTitleDisplayMode(.inline)
+            .personMenu()
             .navigationDestination(for: Account.self) { a in TransactionsView(account: a) }
             .refreshable {
                 async let line: Void = loadHistory()
@@ -82,6 +83,19 @@ struct PortfolioView: View {
             // assume: once when the tab first opens, then on a pull.
             .task { if held == nil { await load() } }
             .task(id: period) { await loadHistory() }
+            // Another person's accounts: the page is theirs now, so the
+            // old one goes and all of it is asked again.
+            .onChange(of: model.person) {
+                held = nil
+                allocation = nil
+                returns = nil
+                history = nil
+                Task {
+                    async let line: Void = loadHistory()
+                    await load()
+                    await line
+                }
+            }
         }
     }
 

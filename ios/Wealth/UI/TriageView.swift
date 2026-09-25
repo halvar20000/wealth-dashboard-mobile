@@ -50,7 +50,8 @@ struct TriageView: View {
             .padding()
             .navigationTitle("Triage")
             .navigationBarTitleDisplayMode(.inline)
-            .task(id: owning) { await load() }
+            .personMenu()
+            .task(id: [owning ? 1 : 0, model.person ?? -1]) { await load() }
             .sheet(item: $choosing) { row in
                 ChoiceSheet(row: row, owning: owning,
                             categories: queue?.categories ?? [],

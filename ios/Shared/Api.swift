@@ -13,7 +13,17 @@ import UniformTypeIdentifiers
 struct Api {
     let baseURL: String
     let token: String?
+    /// Whose picture: nil for the household, else a person's id from
+    /// `people` — the dashboard's own switch at the top of every page.
+    var person: Int? = nil
     var session: URLSession = Api.session
+
+    /// The tools that take `person`. Only these get it: a tool without
+    /// the argument answers 400 to one it does not know.
+    static let scoped: Set<String> = [
+        "snapshot", "holdings", "net_worth_history", "allocation", "performance",
+        "cashflow", "uncategorised", "unowned_spending", "transactions",
+    ]
 
     struct Failure: LocalizedError, Equatable {
         let status: Int
@@ -73,6 +83,8 @@ struct Api {
         guard var parts = URLComponents(string: baseURL + "/api/v1/tools/" + name) else {
             throw Failure(status: 0, message: String(localized: "That address is not a URL."))
         }
+        var args = args
+        if let person, Api.scoped.contains(name) { args["person"] = String(person) }
         if !args.isEmpty {
             parts.queryItems = args.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
         }

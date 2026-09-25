@@ -28,7 +28,14 @@ import java.util.concurrent.TimeUnit
  * words meant for a person, and repeating them beats inventing worse
  * ones here.
  */
-class Api(private val context: Context, private val baseUrl: String, private val token: String?) {
+class Api(
+    private val context: Context,
+    private val baseUrl: String,
+    private val token: String?,
+    /** Whose picture: null for the household, else a person's id from
+     *  `people`. The dashboard's own switch at the top of every page. */
+    private val person: Int? = null,
+) {
 
     class Failure(val status: Int, message: String) : IOException(message)
 
@@ -36,6 +43,13 @@ class Api(private val context: Context, private val baseUrl: String, private val
     data class Upload(val name: String, val mime: String?, val bytes: ByteArray)
 
     companion object {
+        /** The tools that take `person`. Only these get it: a tool
+         *  without the argument answers 400 to one it does not know. */
+        private val SCOPED = setOf(
+            "snapshot", "holdings", "net_worth_history", "allocation", "performance",
+            "cashflow", "uncategorised", "unowned_spending", "transactions",
+        )
+
         val json = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
 
         // The dashboard answers in its own language setting, and without
@@ -111,6 +125,9 @@ class Api(private val context: Context, private val baseUrl: String, private val
         val url = ("$baseUrl$path").toHttpUrlOrNull()?.newBuilder()
             ?: throw Failure(0, context.getString(R.string.error_not_url))
         args.forEach { (k, v) -> url.addQueryParameter(k, v) }
+        if (person != null && path.removePrefix("/api/v1/tools/") in SCOPED) {
+            url.addQueryParameter("person", person.toString())
+        }
         val req = Request.Builder().url(url.build())
             .header("Authorization", "Bearer ${token.orEmpty()}")
             .header("Accept", "application/json")

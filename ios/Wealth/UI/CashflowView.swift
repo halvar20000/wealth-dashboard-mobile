@@ -111,10 +111,11 @@ struct CashflowView: View {
                 }
             }
         }
-        .task(id: months) { await load() }
+        .task(id: [months, model.person ?? -1]) { await load() }
         .refreshable { await load() }
         .navigationTitle("Cash flow")
         .navigationBarTitleDisplayMode(.inline)
+        .personMenu()
     }
 
     private func load() async {

@@ -196,4 +196,7 @@
         <item quantity="one">%1$d wartet auf Einordnung</item>
         <item quantity="other">%1$d warten auf Einordnung</item>
     </plurals>
+    <!-- The person switch in the top bar, as on the dashboard's own pages. -->
+    <string name="person_everyone">Alle</string>
+    <string name="person_switch">Wessen Konten</string>
 </resources>

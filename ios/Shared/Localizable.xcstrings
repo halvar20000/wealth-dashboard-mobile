@@ -564,6 +564,16 @@
         }
       }
     },
+    "Everyone" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle"
+          }
+        }
+      }
+    },
     "Everything" : {
       "localizations" : {
         "de" : {
@@ -1733,6 +1743,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wessen (%lld)"
+          }
+        }
+      }
+    },
+    "Whose accounts" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wessen Konten"
           }
         }
       }
