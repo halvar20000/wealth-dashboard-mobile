@@ -39,7 +39,7 @@ struct TriageView: View {
                 }
 
                 HStack {
-                    Text(owning ? "Whose spending?" : "What is this?").font(.headline)
+                    Text(owning ? LocalizedStringKey("Whose spending?") : LocalizedStringKey("What is this?")).font(.headline)
                     Spacer()
                     Text(countLine).font(.caption).foregroundStyle(.secondary)
                 }

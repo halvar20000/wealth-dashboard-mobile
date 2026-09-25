@@ -1,0 +1,102 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Bank statement" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontoauszug"
+          }
+        }
+      },
+      "comment" : "Document type name (CFBundleTypeName)",
+      "extractionState" : "manual"
+    },
+    "NSFaceIDUsageDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um die Zahlen hinter der Sperre des Telefons zu halten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To keep the figures behind the phone's own lock."
+          }
+        }
+      },
+      "comment" : "Privacy - Face ID Usage Description",
+      "extractionState" : "manual"
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um das Wealth Dashboard in deinem eigenen Netzwerk zu erreichen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To reach the Wealth Dashboard you run on your own network."
+          }
+        }
+      },
+      "comment" : "Privacy - Local Network Usage Description",
+      "extractionState" : "manual"
+    },
+    "OFX statement" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OFX-Auszug"
+          }
+        }
+      },
+      "comment" : "Imported type description (UTTypeDescription)",
+      "extractionState" : "manual"
+    },
+    "QFX statement" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QFX-Auszug"
+          }
+        }
+      },
+      "comment" : "Imported type description (UTTypeDescription)",
+      "extractionState" : "manual"
+    },
+    "Sort what is waiting" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sortieren, was offen ist"
+          }
+        }
+      },
+      "comment" : "Home-screen quick action subtitle (UIApplicationShortcutItemSubtitle)",
+      "extractionState" : "manual"
+    },
+    "Triage" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einordnen"
+          }
+        }
+      },
+      "comment" : "Home-screen quick action title (UIApplicationShortcutItemTitle)",
+      "extractionState" : "manual"
+    }
+  },
+  "version" : "1.0"
+}

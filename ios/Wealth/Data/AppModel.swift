@@ -325,11 +325,11 @@ final class AppModel {
         if let url = error as? URLError {
             switch url.code {
             case .notConnectedToInternet, .networkConnectionLost:
-                return "No network — the figures are the last ones read."
+                return String(localized: "No network — the figures are the last ones read.")
             case .cannotFindHost, .cannotConnectToHost, .timedOut:
-                return "The dashboard did not answer at that address."
+                return String(localized: "The dashboard did not answer at that address.")
             case .appTransportSecurityRequiresSecureConnection:
-                return "This address needs https."
+                return String(localized: "This address needs https.")
             default: break
             }
         }

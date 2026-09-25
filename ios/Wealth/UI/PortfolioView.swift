@@ -286,7 +286,7 @@ private struct HoldingRow: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(h.title).fontWeight(.semibold).lineLimit(2)
-                    Text("\(h.symbol ?? h.isin ?? "") · \(Fmt.quantity(h.quantity)) × \(Fmt.price(h.price, h.currency))")
+                    Text(verbatim: "\(h.symbol ?? h.isin ?? "") · \(Fmt.quantity(h.quantity)) × \(Fmt.price(h.price, h.currency))")
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()
