@@ -33,8 +33,9 @@ private val PERIODS = listOf(
  *
  * Three views of one portfolio: the securities with what each has made,
  * where the money sits by asset class, and the accounts themselves. The
- * chart at the top belongs to all three — it is the net worth, which is
- * the one line that answers "und, wie läuft es".
+ * chart at the top belongs to all three — it is what the depots hold,
+ * the securities alone: cash and property have the overview's line, and
+ * mixed in here they would hide how the shares are doing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,8 +47,8 @@ fun PortfolioScreen(
     onRefresh: () -> Unit,
 ) {
     var view by rememberSaveable { mutableStateOf(0) }   // 0 Wertpapiere, 1 Aufteilung, 2 Konten
-    val known = state.history.points.filter { it.netWorth != null }
-    val line = known.map { it.netWorth!! }
+    val known = state.history.points.filter { it.securities != null }
+    val line = known.map { it.securities!! }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -56,10 +57,10 @@ fun PortfolioScreen(
     ) {
         item {
             Column {
-                Text(stringResource(R.string.wealth), style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.view_securities), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    Fmt.money(line.lastOrNull() ?: state.total, state.baseCurrency),
+                    Fmt.money(line.lastOrNull() ?: state.securities, state.baseCurrency),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold)
                 val change = if (line.size > 1) line.last() - line.first() else null
