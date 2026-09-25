@@ -74,14 +74,26 @@ final class Store {
     /// because the widget has to know whose cached figure it is drawing.
     /// The name is kept beside it so the switch can say whose picture
     /// this is before the dashboard has answered.
+    /// The app's own defaults first, like the unticked classes; the
+    /// Keychain copy is what the widget, which has no such defaults,
+    /// reads. -1 in the defaults is "everyone, chosen".
     var person: Int? {
-        get { read("person").flatMap { Int($0) } }
-        set { write("person", newValue.map(String.init)) }
+        get {
+            if let id = defaults.object(forKey: "person") as? Int { return id >= 0 ? id : nil }
+            return read("person").flatMap { Int($0) }
+        }
+        set {
+            defaults.set(newValue ?? -1, forKey: "person")
+            write("person", newValue.map(String.init))
+        }
     }
 
     var personName: String? {
-        get { read("person_name") }
-        set { write("person_name", newValue) }
+        get { defaults.string(forKey: "person_name") ?? read("person_name") }
+        set {
+            defaults.set(newValue, forKey: "person_name")
+            write("person_name", newValue)
+        }
     }
 
     /// Whether the background round runs, and the last thing it said —
@@ -117,7 +129,7 @@ final class Store {
                                     kSecAttrService as String: service]
         SecItemDelete(query as CFDictionary)
         try? FileManager.default.removeItem(at: directory)
-        for key in ["excluded_classes", "lock", "watch", "last_notice"] {
+        for key in ["excluded_classes", "lock", "watch", "last_notice", "person", "person_name"] {
             defaults.removeObject(forKey: key)
         }
     }
