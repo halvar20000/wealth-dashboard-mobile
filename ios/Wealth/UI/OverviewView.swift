@@ -40,6 +40,7 @@ struct OverviewView: View {
             }
             .navigationTitle(model.serverName ?? "Overview")
             .navigationBarTitleDisplayMode(.inline)
+            .personMenu()
             .toolbar {
                 // Two refreshes, never confused (contract rule 9): pulling
                 // the list re-reads what the dashboard knows; this button

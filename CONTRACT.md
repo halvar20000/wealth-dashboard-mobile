@@ -88,6 +88,15 @@ POST {base}/api/v1/accounts/{id}/import    # multipart, field name "file"
 It answers with the same report the web import page shows: how many
 rows were new, how many were already there, and why any were left out.
 
+**Whose figures.** `snapshot`, `net_worth_history`, `holdings`,
+`allocation`, `performance`, `cashflow`, `transactions`,
+`uncategorised` and `unowned_spending` take an optional `person` (an
+id from `people`) and then count only that person's accounts — the
+switch at the top of the dashboard's own pages. The clients send it to
+those tools and to no other, because a tool that does not know an
+argument answers 400. The choice and the cached snapshot are kept
+together: a cache for somebody else is not drawn.
+
 ## Rules both clients keep
 
 These are decisions, not preferences. Where the two apps differ here,

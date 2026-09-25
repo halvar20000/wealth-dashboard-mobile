@@ -54,13 +54,31 @@ class Store(context: Context) {
         prefs.edit().clear().apply()
     }
 
-    /** The last answer, so the app opens on figures rather than a spinner. */
-    fun cache(raw: String) = prefs.edit()
+    /**
+     * Whose figures the app shows: null for everyone, else a person's id
+     * as `people` gives it — the same lens as the switch at the top of
+     * the dashboard. The name is kept beside it so the switch can say
+     * whose picture this is before the dashboard has answered.
+     */
+    var person: Int?
+        get() = prefs.getInt("person", -1).takeIf { it >= 0 }
+        set(value) = prefs.edit().putInt("person", value ?: -1).apply()
+
+    var personName: String?
+        get() = prefs.getString("person_name", null)
+        set(value) = prefs.edit().putString("person_name", value).apply()
+
+    /** The last answer, so the app opens on figures rather than a spinner.
+     *  It is kept with whose it was: one person's net worth shown under
+     *  the household's name would be a wrong figure, not an old one. */
+    fun cache(raw: String, whose: Int? = person) = prefs.edit()
         .putString("snapshot", raw)
         .putLong("snapshot_at", System.currentTimeMillis())
+        .putInt("snapshot_person", whose ?: -1)
         .apply()
 
     fun cached(): Pair<Snapshot, Long>? {
+        if (prefs.getInt("snapshot_person", -1) != (person ?: -1)) return null
         val raw = prefs.getString("snapshot", null) ?: return null
         val at = prefs.getLong("snapshot_at", 0L)
         return runCatching { Api.json.decodeFromString(Snapshot.serializer(), raw) to at }.getOrNull()
@@ -108,5 +126,5 @@ class Store(context: Context) {
         get() = prefs.getStringSet("excluded_classes", emptySet()).orEmpty()
         set(value) = prefs.edit().putStringSet("excluded_classes", value).apply()
 
-    fun api(): Api = Api(baseUrl.orEmpty(), token)
+    fun api(): Api = Api(baseUrl.orEmpty(), token, person)
 }

@@ -27,6 +27,11 @@ final class AppModel {
     private(set) var serverVersion: String?
     /// Verdicts taken on this phone that the dashboard has not heard.
     private(set) var waiting = 0
+    /// The household as the dashboard knows it; empty hides the switch.
+    private(set) var people: [Person] = []
+    /// Whose figures are shown: nil for everyone.
+    private(set) var person: Int?
+    private(set) var personName: String?
     /// Whether the figures hide behind the device's own lock.
     private(set) var lockEnabled: Bool
     /// True while the lock is up.
@@ -43,6 +48,8 @@ final class AppModel {
         waiting = store.pending().count
         lockEnabled = store.lockEnabled
         locked = store.paired && store.lockEnabled
+        person = store.person
+        personName = store.personName
         if let cached = store.cached() {
             snapshot = cached.snapshot
             readAt = cached.at
@@ -76,12 +83,31 @@ final class AppModel {
         }
     }
 
+    /// Set when a refresh is asked for while one runs under a lens that
+    /// has since changed: the running one goes round once more.
+    private var again = false
+
     func refresh() async {
-        guard paired, !refreshing else { return }
+        guard paired else { return }
+        if refreshing { again = true; return }
         refreshing = true
         defer { refreshing = false }
+        // Who the dashboard knows, beside every refresh: a person added
+        // or removed in the browser should show here too.
+        Task { await loadPeople() }
+        repeat {
+            again = false
+            await fetchSnapshot()
+        } while again
+    }
+
+    private func fetchSnapshot() async {
+        let asked = person
         do {
             let fresh = try await store.api().snapshot()
+            // Somebody else's figures by now: the switch moved while this
+            // was on its way, and `again` fetches the right ones.
+            guard asked == person else { return }
             let now = Date()
             store.cache(fresh, at: now)
             // The Home screen draws the same cache; redraw it now, so the
@@ -123,6 +149,43 @@ final class AppModel {
         } catch {
             self.error = Self.sentence(for: error)
         }
+    }
+
+    // MARK: Whose figures
+
+    /// Who the dashboard knows. A dashboard older than 0.72.4 has no
+    /// `people`; it answers 404 and the switch stays away.
+    private func loadPeople() async {
+        let known: [Person]
+        do {
+            known = try await store.api().people()
+        } catch let failure as Api.Failure where failure.status == 404 {
+            known = []
+        } catch {
+            return
+        }
+        people = known
+        // The person this phone was showing is gone from the dashboard:
+        // fall back to everyone rather than ask for somebody it no
+        // longer knows.
+        if let person, !known.contains(where: { $0.id == person }) { await choose(nil) }
+    }
+
+    /// Show one person's accounts, or everyone's (nil). The figures on
+    /// screen go at once, since they were somebody else's; the pages
+    /// that watch `person` ask again by themselves.
+    func choose(_ who: Person?) async {
+        guard who?.id != person else { return }
+        store.person = who?.id
+        store.personName = who?.name
+        person = who?.id
+        personName = who?.name
+        let cached = store.cached()
+        snapshot = cached?.snapshot
+        readAt = cached?.at
+        stale = true
+        WidgetCenter.shared.reloadAllTimelines()
+        await refresh()
     }
 
     func toggleClass(_ name: String) {
@@ -297,6 +360,9 @@ final class AppModel {
         serverName = nil
         serverVersion = nil
         excluded = []
+        people = []
+        person = nil
+        personName = nil
         snapshot = nil
         readAt = nil
         stale = true

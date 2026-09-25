@@ -20,6 +20,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 3a | Net worth without chosen asset classes | ✅ 1.2.0 | ✅ 1.2.1 | tick boxes over `by_class`, kept on the phone |
 | 3b | Performance: all eight windows without scrolling | ✅ 1.2.0 | ✅ 1.2.1 | two rows of four |
 | 3c | Refresh quotes and FX without a bank sync | ✅ 1.2.0 | ✅ 1.2.1 | `refresh_market`, dashboard ≥ 0.73.0 |
+| 3d | Whose figures: everyone, or one person's accounts | ✅ 1.2.5 | ✅ 1.2.5 | `person` on every tool that takes it, the switch fed by `people`; hidden when the dashboard knows nobody |
 | 4 | Accounts, and the rows behind one | ✅ 0.1.0 | ✅ 1.2.1 | inside the Portfolio tab |
 | 5 | Transactions: list and search | ✅ 0.1.0 | ✅ 1.2.1 | `transactions` with `q` |
 | 6 | Portfolio: holdings with value, gain and return | ✅ 1.1.0 | ✅ 1.2.2 | `holdings` + `performance` |

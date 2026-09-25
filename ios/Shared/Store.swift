@@ -69,6 +69,21 @@ final class Store {
         }
     }
 
+    /// Whose figures the app shows: nil for everyone, else a person's id
+    /// as `people` gives it. In the Keychain, like the unticked classes,
+    /// because the widget has to know whose cached figure it is drawing.
+    /// The name is kept beside it so the switch can say whose picture
+    /// this is before the dashboard has answered.
+    var person: Int? {
+        get { read("person").flatMap { Int($0) } }
+        set { write("person", newValue.map(String.init)) }
+    }
+
+    var personName: String? {
+        get { read("person_name") }
+        set { write("person_name", newValue) }
+    }
+
     /// Whether the background round runs, and the last thing it said —
     /// so that it does not say the same thing every few hours.
     var watch: Bool {
@@ -107,7 +122,7 @@ final class Store {
         }
     }
 
-    func api() -> Api { Api(baseURL: baseURL ?? "", token: token) }
+    func api() -> Api { Api(baseURL: baseURL ?? "", token: token, person: person) }
 
     private func read(_ key: String) -> String? {
         readData(key).flatMap { String(data: $0, encoding: .utf8) }
@@ -151,6 +166,10 @@ final class Store {
     struct Cached: Codable {
         var at: Date
         var snapshot: Snapshot
+        /// Whose figures these are; nil for the household. One person's
+        /// net worth shown under everyone's would be a wrong figure, not
+        /// an old one, so a cache for somebody else is not used.
+        var person: Int? = nil
     }
 
     private var cacheFile: URL { directory.appendingPathComponent("snapshot.json") }
@@ -158,7 +177,7 @@ final class Store {
     func cache(_ snapshot: Snapshot, at: Date = Date()) {
         // A cache that cannot be written costs a spinner on the next cold
         // start, nothing more.
-        guard let data = try? JSONEncoder().encode(Cached(at: at, snapshot: snapshot)) else { return }
+        guard let data = try? JSONEncoder().encode(Cached(at: at, snapshot: snapshot, person: person)) else { return }
         try? keep(data, in: cacheFile)
         writeData("snapshot", data)
     }
@@ -201,8 +220,10 @@ final class Store {
     /// The app's own file first; the Keychain copy is what the widget
     /// and the share extension, which cannot see that file, read.
     func cached() -> Cached? {
-        guard let data = (try? Data(contentsOf: cacheFile)) ?? readData("snapshot") else { return nil }
-        return try? Api.decoder.decode(Cached.self, from: data)
+        guard let data = (try? Data(contentsOf: cacheFile)) ?? readData("snapshot"),
+              let cached = try? Api.decoder.decode(Cached.self, from: data),
+              cached.person == person else { return nil }
+        return cached
     }
 
     /// Items written before the widget existed sit in the app's own
