@@ -14,7 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,12 +24,15 @@ import fr.smarthomeworld.wealth.data.ClassValue
 import fr.smarthomeworld.wealth.data.HistoryPoint
 import fr.smarthomeworld.wealth.data.Period
 import fr.smarthomeworld.wealth.data.Snapshot
+import fr.smarthomeworld.wealth.R
 
 // Short on purpose: eight of these sit four to a row on a phone, and
 // the long form pushed the last two off the screen.
 private val PERIODS = listOf(
-    "1d" to "1 T", "1w" to "1 W", "1m" to "1 M", "3m" to "3 M",
-    "ytd" to "YTD", "1y" to "1 J", "3y" to "3 J", "all" to "Start",
+    "1d" to R.string.period_1d, "1w" to R.string.period_1w,
+    "1m" to R.string.period_1m, "3m" to R.string.period_3m,
+    "ytd" to R.string.period_ytd, "1y" to R.string.period_1y,
+    "3y" to R.string.period_3y, "all" to R.string.period_start,
 )
 
 @Composable
@@ -46,6 +51,7 @@ fun OverviewScreen(
     onTransactions: () -> Unit,
 ) {
     val ccy = snapshot.baseCurrency
+    val context = LocalContext.current
     // `by_class` carries what is owned and nothing that is owed: the
     // dashboard draws it as a ring, and a ring has no negative slice.
     // The net worth it reports does subtract the debt, so a sum of the
@@ -54,7 +60,7 @@ fun OverviewScreen(
     // be unticked like the others.
     val debt = snapshot.netWorth.debt ?: 0.0
     val classes = snapshot.netWorth.byClass +
-        (if (debt > 0.0) listOf(ClassValue("Schulden", -debt)) else emptyList())
+        (if (debt > 0.0) listOf(ClassValue(stringResource(R.string.debt), -debt)) else emptyList())
     val left = classes.filter { it.name !in excluded }
     val dropped = classes.filter { it.name in excluded }
     // With nothing unticked the dashboard's own figure is shown, not a
@@ -69,7 +75,7 @@ fun OverviewScreen(
     ) {
         item {
             Column {
-                Text("NET WORTH", style = MaterialTheme.typography.labelSmall,
+                Text(stringResource(R.string.net_worth).uppercase(), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 2.sp)
                 Text(
                     Fmt.money(shown, ccy),
@@ -77,22 +83,26 @@ fun OverviewScreen(
                 )
                 if (dropped.isNotEmpty()) {
                     Text(
-                        "ohne " + dropped.joinToString(", ") { it.name } +
-                            " · mit allem " + Fmt.money(snapshot.netWorth.total, ccy),
+                        stringResource(R.string.net_worth_without,
+                            dropped.joinToString(", ") { it.name },
+                            Fmt.money(snapshot.netWorth.total, ccy)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 val parts = listOfNotNull(
-                    snapshot.netWorth.cash?.let { "Cash ${Fmt.money(it, ccy)}" },
-                    snapshot.netWorth.securities?.let { "Securities ${Fmt.money(it, ccy)}" },
+                    snapshot.netWorth.cash?.let { context.getString(R.string.part_cash, Fmt.money(it, ccy)) },
+                    snapshot.netWorth.securities?.let { context.getString(R.string.part_securities, Fmt.money(it, ccy)) },
                 ).joinToString(" · ")
                 if (parts.isNotEmpty()) {
                     Text(parts, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 val when_ = buildString {
-                    append(if (stale) "As of ${Fmt.since(at)}" else "Updated ${Fmt.since(at)}")
-                    snapshot.netWorth.pricesAsOf?.let { append(" · prices ${Fmt.day(it)}") }
+                    val since = Fmt.since(context, at)
+                    append(context.getString(if (stale) R.string.as_of else R.string.updated, since))
+                    snapshot.netWorth.pricesAsOf?.let {
+                        append(" · "); append(context.getString(R.string.prices_of, Fmt.day(it)))
+                    }
                 }
                 Text(when_, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -116,7 +126,7 @@ fun OverviewScreen(
             }
         }
 
-        item { Section("Performance") }
+        item { Section(stringResource(R.string.performance)) }
         item {
             // Two rows of four rather than a queue that scrolls off the
             // screen: the whole point of these eight is comparing them.
@@ -129,7 +139,7 @@ fun OverviewScreen(
                     ) {
                         row.forEach { (key, label) ->
                             Box(Modifier.weight(1f)) {
-                                PerfTile(label, snapshot.performance.getValue(key), ccy)
+                                PerfTile(stringResource(label), snapshot.performance.getValue(key), ccy)
                             }
                         }
                         repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -142,10 +152,10 @@ fun OverviewScreen(
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween) {
-                    Section("Was zählt mit")
+                    Section(stringResource(R.string.what_counts))
                     if (dropped.isNotEmpty()) {
                         TextButton(onClick = { dropped.forEach { onToggleClass(it.name) } }) {
-                            Text("alles")
+                            Text(stringResource(R.string.all_classes))
                         }
                     }
                 }
@@ -173,13 +183,16 @@ fun OverviewScreen(
         snapshot.upcoming?.let { up ->
             item {
                 Column {
-                    Section("Nächste ${up.days} Tage")
+                    Section(plural(R.plurals.next_days, up.days))
                     // One line of context, not a card: what is due is the
                     // list below, and the only figure worth carrying over
                     // it is what is left once it has all gone out.
                     Text(
-                        "Bargeld jetzt ${Fmt.money(up.starting, ccy)} → danach ${Fmt.money(up.ending, ccy)}"
-                            + (up.belowZero?.let { " · unter null am ${Fmt.day(it.date)}" } ?: ""),
+                        stringResource(R.string.cash_now_then,
+                            Fmt.money(up.starting, ccy), Fmt.money(up.ending, ccy))
+                            + (up.belowZero?.let {
+                                " · " + stringResource(R.string.below_zero_on, Fmt.day(it.date))
+                            } ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (up.belowZero != null) Loss
                                 else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -191,7 +204,7 @@ fun OverviewScreen(
                         Column(Modifier.weight(1f)) {
                             Text(e.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                             Text(
-                                Fmt.day(e.date) + (if (e.estimate) " · expected" else ""),
+                                Fmt.day(e.date) + (if (e.estimate) " · " + stringResource(R.string.expected) else ""),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -206,13 +219,16 @@ fun OverviewScreen(
             }
         }
 
-        item { Section("Waiting for you") }
+        item { Section(stringResource(R.string.waiting_for_you)) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Badge2("${snapshot.waiting.uncategorised}", "uncategorised", onTransactions)
-                Badge2("${snapshot.waiting.unassignedSpending}", "unassigned", onTransactions)
-                Badge2("${snapshot.sync.links}", "connections" +
-                    (if (snapshot.sync.red > 0) " · ${snapshot.sync.red} red" else ""), onAccounts)
+                Badge2("${snapshot.waiting.uncategorised}",
+                    stringResource(R.string.badge_uncategorised), onTransactions)
+                Badge2("${snapshot.waiting.unassignedSpending}",
+                    stringResource(R.string.badge_unassigned), onTransactions)
+                Badge2("${snapshot.sync.links}", stringResource(R.string.badge_connections) +
+                    (if (snapshot.sync.red > 0) " · " + stringResource(R.string.badge_red, snapshot.sync.red)
+                     else ""), onAccounts)
             }
         }
 
