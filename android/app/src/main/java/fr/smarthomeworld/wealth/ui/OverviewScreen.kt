@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.smarthomeworld.wealth.data.ClassValue
+import fr.smarthomeworld.wealth.data.HistoryPoint
 import fr.smarthomeworld.wealth.data.Period
 import fr.smarthomeworld.wealth.data.Snapshot
 
@@ -37,7 +38,7 @@ fun OverviewScreen(
     error: String?,
     /** The net worth over the last year, for the line under the figure.
      *  Empty until it has been fetched — the page works without it. */
-    history: List<Double> = emptyList(),
+    history: List<HistoryPoint> = emptyList(),
     /** Asset classes the user has unticked; the figure leaves them out. */
     excluded: Set<String> = emptySet(),
     onToggleClass: (String) -> Unit = {},
@@ -98,8 +99,12 @@ fun OverviewScreen(
             }
         }
 
-        if (history.size > 1) {
-            item { LineChart(history, Modifier.fillMaxWidth().height(150.dp)) }
+        val line = history.filter { it.netWorth != null }
+        if (line.size > 1) {
+            item {
+                LineChart(line.map { it.netWorth!! }, Modifier.fillMaxWidth().height(150.dp),
+                    dates = line.map { it.date }, currency = ccy)
+            }
         }
 
         if (error != null) {
