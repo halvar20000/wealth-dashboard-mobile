@@ -1,5 +1,6 @@
 package fr.smarthomeworld.wealth.ui
 
+import android.content.Context
 import java.text.NumberFormat
 import java.time.Duration
 import java.time.Instant
@@ -8,6 +9,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Currency
 import java.util.Locale
+import fr.smarthomeworld.wealth.R
 
 /** Numbers as the phone's language writes them, in the money's own unit. */
 object Fmt {
@@ -50,13 +52,13 @@ object Fmt {
     }
 
     /** "just now", "12 min ago", "3 h ago", or the day. */
-    fun since(millis: Long): String {
+    fun since(context: Context, millis: Long): String {
         if (millis <= 0) return ""
         val d = Duration.between(Instant.ofEpochMilli(millis), Instant.now())
         return when {
-            d.toMinutes() < 1 -> "just now"
-            d.toHours() < 1 -> "${d.toMinutes()} min ago"
-            d.toDays() < 1 -> "${d.toHours()} h ago"
+            d.toMinutes() < 1 -> context.getString(R.string.just_now)
+            d.toHours() < 1 -> context.getString(R.string.minutes_ago, d.toMinutes())
+            d.toDays() < 1 -> context.getString(R.string.hours_ago, d.toHours())
             else -> day(LocalDate.now().minusDays(d.toDays()).toString())
         }
     }

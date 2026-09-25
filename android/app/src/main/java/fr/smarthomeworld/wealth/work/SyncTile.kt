@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import fr.smarthomeworld.wealth.R
 
 /**
  * *Sync now* from the pull-down shade — for the moment after you have
@@ -34,12 +35,12 @@ class SyncTile : TileService() {
     override fun onClick() {
         super.onClick()
         val store = Store(this)
-        if (!store.paired) { paint("not paired yet"); return }
-        paint("syncing…")
+        if (!store.paired) { paint(getString(R.string.tile_unpaired)); return }
+        paint(getString(R.string.tile_syncing))
         scope.launch {
             val ok = runCatching { Repo(store).refresh() }.isSuccess
             refreshWidgets(this@SyncTile)
-            paint(if (ok) null else "the dashboard did not answer")
+            paint(if (ok) null else getString(R.string.tile_no_answer))
         }
     }
 
@@ -52,9 +53,9 @@ class SyncTile : TileService() {
         val tile = qsTile ?: return
         val at = Store(this).cached()?.second ?: 0L
         tile.state = Tile.STATE_INACTIVE
-        tile.label = "Sync now"
+        tile.label = getString(R.string.tile_label)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle = saying ?: if (at > 0) Fmt.since(at) else "never"
+            tile.subtitle = saying ?: if (at > 0) Fmt.since(this, at) else getString(R.string.never)
         }
         tile.updateTile()
     }

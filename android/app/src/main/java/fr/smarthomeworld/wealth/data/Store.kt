@@ -14,6 +14,9 @@ import kotlinx.serialization.builtins.ListSerializer
  */
 class Store(context: Context) {
 
+    /** For the words the requests say when the dashboard says none. */
+    val context: Context = context.applicationContext
+
     private val prefs: SharedPreferences = run {
         val key = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -108,5 +111,5 @@ class Store(context: Context) {
         get() = prefs.getStringSet("excluded_classes", emptySet()).orEmpty()
         set(value) = prefs.edit().putStringSet("excluded_classes", value).apply()
 
-    fun api(): Api = Api(baseUrl.orEmpty(), token)
+    fun api(): Api = Api(context, baseUrl.orEmpty(), token)
 }
