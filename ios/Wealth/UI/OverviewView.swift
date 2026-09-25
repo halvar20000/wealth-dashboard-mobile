@@ -90,6 +90,16 @@ struct OverviewView: View {
                 }
                 .padding(.vertical, 4)
                 .listRowBackground(Color.clear)
+
+                // The net worth over the last year, as on Android. It is
+                // the whole figure; the portfolio tab draws the depots.
+                if model.netWorthLine.count > 1 {
+                    LineChart(values: model.netWorthLine)
+                        .frame(height: 150)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                        .listRowSeparator(.hidden)
+                }
             }
 
             if let error = model.error {

@@ -22,6 +22,9 @@ final class AppModel {
     private(set) var pairing = false
     /// Set while the cheap refresh runs, so its button can say so.
     private(set) var pricing = false
+    /// The net worth over the last year, for the line under the figure.
+    /// Empty until it has been fetched — the overview works without it.
+    private(set) var netWorthLine: [Double] = []
     /// Asset classes the viewer has unticked; the figure leaves them out.
     private(set) var excluded: Set<String>
     private(set) var serverVersion: String?
@@ -99,8 +102,15 @@ final class AppModel {
             // The token is gone on the dashboard's side. The figures stay
             // until the person decides to pair again.
             error = failure.message
+            return
         } catch {
             self.error = Self.sentence(for: error)
+            return
+        }
+        // The line is an extra: a dashboard that cannot draw it still
+        // gives the figure, and a failure here keeps yesterday's line.
+        if let history = try? await store.api().history(period: "1y") {
+            netWorthLine = history.line
         }
     }
 
@@ -298,6 +308,7 @@ final class AppModel {
         serverVersion = nil
         excluded = []
         snapshot = nil
+        netWorthLine = []
         readAt = nil
         stale = true
         error = nil

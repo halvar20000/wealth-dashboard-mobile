@@ -355,6 +355,10 @@ struct Holdings: Codable {
 struct HistoryPoint: Codable, Hashable {
     var date: String?
     var netWorth: Double?
+    /// What the depots hold that day, without cash or anything else.
+    /// Nil on days rebuilt from another app's totals, which never split
+    /// the figure.
+    var securities: Double?
 }
 
 struct History: Codable {
@@ -363,8 +367,10 @@ struct History: Codable {
     var firstDate: String?
     var points: [HistoryPoint]?
 
-    /// The line, without the days nothing was recorded for.
+    /// The net worth, without the days nothing was recorded for.
     var line: [Double] { (points ?? []).compactMap(\.netWorth) }
+    /// The securities alone, for the portfolio's line.
+    var securities: [Double] { (points ?? []).compactMap(\.securities) }
 }
 
 struct AllocationRow: Codable, Hashable {
