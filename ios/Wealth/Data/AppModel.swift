@@ -111,8 +111,11 @@ final class AppModel {
         pricing = true
         defer { pricing = false }
         do {
-            _ = try await store.api().refreshMarket()
+            let market = try await store.api().refreshMarket()
             await refresh()
+            // A quote the provider refused is said beside the figures,
+            // with its reason; the snapshot's own failure comes first.
+            if error == nil { error = market.note }
         } catch let failure as Api.Failure where failure.status == 404 {
             // The dashboard is older than the button; stop offering it.
             serverVersion = serverVersion ?? "0"
@@ -228,6 +231,36 @@ final class AppModel {
         store.savePending(left)
         waiting = left.count
         return true
+    }
+
+    // MARK: A file opened with "Open in Wealth"
+
+    /// The import sheet for a file opened from Safari's downloads or the
+    /// Files app — the share extension's screen, shown by the app.
+    var opened: ShareState?
+
+    /// A downloaded statement arrives as a URL rather than a share. It is
+    /// read at once; several files opened together join one sheet, as
+    /// several shared at once would.
+    func open(_ url: URL) {
+        guard url.isFileURL else { return }
+        let upload = Api.Upload.read(url)
+        // iOS copied it into Documents/Inbox for us; the dashboard keeps
+        // the statement, the phone need not.
+        if url.path.contains("/Documents/Inbox/") { try? FileManager.default.removeItem(at: url) }
+        if let sheet = opened, sheet.reply == nil, !sheet.sending {
+            if let upload { sheet.files.append(upload) }
+            return
+        }
+        let sheet = ShareState()
+        sheet.paired = paired
+        sheet.accounts = accounts
+        sheet.api = store.api()
+        sheet.serverVersion = serverVersion
+        sheet.files = upload.map { [$0] } ?? []
+        sheet.reading = false
+        sheet.close = { [weak self] in self?.opened = nil }
+        opened = sheet
     }
 
     // MARK: The background round

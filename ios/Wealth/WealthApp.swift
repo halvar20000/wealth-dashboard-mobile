@@ -50,6 +50,9 @@ struct RootView: View {
             }
         }
         .onChange(of: actions.requested) { _, _ in openRequested() }
+        // "Open in Wealth" on a downloaded statement (Info.plist,
+        // CFBundleDocumentTypes): the share sheet's question, asked here.
+        .onOpenURL { url in model.open(url) }
         .onAppear { openRequested() }
     }
 
@@ -82,6 +85,14 @@ struct RootView: View {
                 .tag(AppTab.settings)
         }
         .tint(.gain)
+        // On the tabs, not the root: a file opened while the app is
+        // locked waits behind the lock rather than showing the accounts.
+        .sheet(item: Bindable(model).opened, onDismiss: {
+            // What was imported shows in the figures at once.
+            Task { await model.refresh() }
+        }) { sheet in
+            ShareView(state: sheet)
+        }
         .task {
             await model.refresh()
             await model.flush()

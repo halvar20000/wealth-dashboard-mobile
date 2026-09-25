@@ -74,7 +74,7 @@ struct OverviewView: View {
                         .font(.system(size: 40, weight: .heavy))
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
-                    let dropped = (s.netWorth?.byClass ?? []).compactMap(\.name).filter { model.excluded.contains($0) }
+                    let dropped = s.classes.compactMap(\.name).filter { model.excluded.contains($0) }
                     if !dropped.isEmpty {
                         Text("without \(dropped.joined(separator: ", ")) · with everything \(Fmt.money(s.netWorth?.total, ccy))")
                             .font(.footnote).foregroundStyle(.secondary)
@@ -114,7 +114,10 @@ struct OverviewView: View {
                 }
             }
 
-            if let classes = s.netWorth?.byClass, !classes.isEmpty {
+            // The debt is among these, as a line of its own: without it a
+            // single untick would drop every loan from the figure.
+            let classes = s.classes
+            if !classes.isEmpty {
                 Section {
                     ForEach(classes, id: \.self) { c in
                         ClassRow(item: c, currency: ccy, counted: !model.excluded.contains(c.name ?? "")) {
@@ -227,7 +230,10 @@ private struct ClassRow: View {
                     .foregroundStyle(counted ? Color.gain : Color.secondary)
                 Text(item.name ?? "—")
                 Spacer()
-                Text(Fmt.money(item.value, currency)).fontWeight(.semibold)
+                Text(Fmt.money(item.value, currency))
+                    .fontWeight(.semibold)
+                    // What is owed reads in red: it is not an asset.
+                    .foregroundStyle(counted && (item.value ?? 0) < 0 ? Color.loss : (counted ? Color.primary : Color.secondary))
             }
             .foregroundStyle(counted ? Color.primary : Color.secondary)
             .contentShape(Rectangle())

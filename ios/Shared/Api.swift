@@ -1,4 +1,5 @@
 import Foundation
+import UniformTypeIdentifiers
 
 /// The dashboard's own HTTP surface, nothing else.
 ///
@@ -200,6 +201,18 @@ struct Api {
         var name: String
         var mime: String?
         var data: Data
+
+        /// A file handed over by URL — "Open in Wealth" from Safari's
+        /// downloads or the Files app. Read now: the permission to read a
+        /// file outside the app lasts only as long as this call.
+        static func read(_ url: URL) -> Upload? {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            guard let data = try? Data(contentsOf: url) else { return nil }
+            return Upload(name: url.lastPathComponent,
+                          mime: UTType(filenameExtension: url.pathExtension)?.preferredMIMEType,
+                          data: data)
+        }
     }
 
     /// A statement into an account, as the import page takes it: the
@@ -237,6 +250,15 @@ struct Api {
             throw Failure(status: status, message: reply?.error ?? Api.sentence(for: status))
         }
         return reply
+    }
+
+    /// Put one file import back: every row it brought, nothing else —
+    /// a row a later file found already there stays with the import that
+    /// first brought it. Answers with how many rows went. Needs a
+    /// dashboard on 0.74.0 or newer.
+    func undoImport(accountId: Int, importId: Int) async throws -> Int {
+        try await post("undo_import", ["account_id": accountId, "import_id": importId],
+                       as: UndoneImport.self).removed ?? 0
     }
 
     /// An answer whose content does not matter, only that it came.

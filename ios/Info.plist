@@ -46,6 +46,82 @@
 		<string>fetch</string>
 	</array>
 
+	<!-- "Open in Wealth", not only "Share": a statement just downloaded
+	     in Safari, or tapped in the Files app, offers this app for the
+	     kinds of file the dashboard reads. The app is an Alternate
+	     handler, never the owner — Numbers still opens a CSV by default.
+	     Not opened in place: iOS hands over a copy, which is read once,
+	     sent, and deleted. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Bank statement</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.comma-separated-values-text</string>
+				<string>com.adobe.pdf</string>
+				<string>com.microsoft.excel.xls</string>
+				<string>public.zip-archive</string>
+				<string>public.xml</string>
+				<string>com.intuit.ofx</string>
+				<string>com.intuit.qfx</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
+	<!-- OFX and QFX are not types iOS knows by itself. -->
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.intuit.ofx</string>
+			<key>UTTypeDescription</key>
+			<string>OFX statement</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ofx</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-ofx</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.intuit.qfx</string>
+			<key>UTTypeDescription</key>
+			<string>QFX statement</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>qfx</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.intu.qfx</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
 	<!-- Only the system's own TLS: no export-compliance question on every
 	     TestFlight upload. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
