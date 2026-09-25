@@ -85,7 +85,7 @@ struct Account: Codable, Identifiable, Hashable {
     var balanceBase: Double?
     var asOf: String?
 
-    var title: String { name ?? "Account \(id)" }
+    var title: String { name ?? String(localized: "Account \(id)") }
 }
 
 struct Upcoming: Codable {
@@ -254,6 +254,14 @@ extension Snapshot {
     /// The name the debt goes by among the classes — and so in the set
     /// of unticked ones.
     static let debtClass = "Debt"
+
+    /// A class's name as the screen shows it: the debt line is the app's
+    /// own, so it is said in the phone's language; the rest are the
+    /// dashboard's names, as they come.
+    static func className(_ name: String?) -> String {
+        guard let name else { return "—" }
+        return name == debtClass ? String(localized: "Debt") : name
+    }
 
     /// What can be ticked: the classes, and the debt as a line of its own.
     ///

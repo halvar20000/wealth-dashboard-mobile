@@ -188,7 +188,7 @@ private struct MonthBars: View {
                 Text(months.first?.month ?? "").font(.caption2).foregroundStyle(.secondary)
                 Spacer()
                 if let last = months.last {
-                    Text("\(last.month ?? ""): \(Fmt.signedMoney(last.net, currency))")
+                    Text(verbatim: "\(last.month ?? ""): \(Fmt.signedMoney(last.net, currency))")
                         .font(.caption2)
                         .foregroundStyle(Color.sign(last.net))
                 }
