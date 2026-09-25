@@ -6,10 +6,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import fr.smarthomeworld.wealth.data.Account
 import fr.smarthomeworld.wealth.data.ImportReply
+import fr.smarthomeworld.wealth.R
 
 /**
  * Which account does this statement belong to? — and then what the
@@ -35,24 +37,23 @@ fun ShareScreen(
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(if (reply == null) "Import into…" else "Imported") },
-            actions = { TextButton(onClick = onClose) { Text(if (reply == null) "Cancel" else "Done") } },
+            title = { Text(stringResource(if (reply == null) R.string.import_into else R.string.imported)) },
+            actions = { TextButton(onClick = onClose) { Text(stringResource(if (reply == null) R.string.cancel else R.string.done)) } },
         )
     }) { pad ->
         Column(Modifier.padding(pad).fillMaxSize().padding(16.dp),
                verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-            Text(files.joinToString(", ").ifBlank { "Nothing was shared." },
+            Text(files.joinToString(", ").ifBlank { stringResource(R.string.nothing_shared) },
                  style = MaterialTheme.typography.bodyMedium,
                  color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             when {
-                !paired -> Text("Pair this phone with your dashboard first — open the app and " +
-                                "enter the six-digit code from Settings → Assistants.")
-                files.isEmpty() -> Text("The app that shared this sent no file.")
+                !paired -> Text(stringResource(R.string.share_unpaired))
+                files.isEmpty() -> Text(stringResource(R.string.share_no_file))
                 error != null -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(error!!, color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = { error = null }) { Text("Try another account") }
+                    TextButton(onClick = { error = null }) { Text(stringResource(R.string.share_try_another)) }
                 }
                 reply != null -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Report(reply!!)
@@ -60,7 +61,7 @@ fun ShareScreen(
                     val account = reply!!.account?.id
                     when {
                         undone != null -> Text(
-                            "Zurückgenommen — $undone Zeile(n) wieder entfernt.",
+                            plural(R.plurals.undone_rows, undone ?: 0),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         // An import that brought nothing has nothing to
@@ -78,16 +79,16 @@ fun ShareScreen(
                                 },
                                 enabled = !undoing,
                             ) {
-                                Text(if (undoing) "Wird zurückgenommen…" else "Import rückgängig machen")
+                                Text(stringResource(if (undoing) R.string.undoing else R.string.undo_import))
                             }
                     }
                 }
                 sending -> Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text("Sending to the dashboard…")
+                    Text(stringResource(R.string.sending))
                 }
-                accounts.isEmpty() -> Text("No accounts yet — open the app once so it knows them.")
+                accounts.isEmpty() -> Text(stringResource(R.string.share_no_accounts))
                 else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(accounts) { a ->
                         Card(onClick = {
@@ -123,8 +124,8 @@ fun ShareScreen(
 private fun Report(reply: ImportReply) {
     val r = reply.result
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(r?.label ?: "Read", fontWeight = FontWeight.SemiBold)
-        Text("${r?.inserted ?: 0} new, ${r?.duplicates ?: 0} already there" +
+        Text(r?.label ?: stringResource(R.string.read), fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.import_counts, r?.inserted ?: 0, r?.duplicates ?: 0) +
              (reply.account?.name?.let { " · $it" } ?: ""))
         (r?.notes.orEmpty() + r?.problems.orEmpty()).take(4).forEach {
             Text(it, style = MaterialTheme.typography.bodySmall,

@@ -1,6 +1,9 @@
 package fr.smarthomeworld.wealth.data
 
+import android.content.Context
+import fr.smarthomeworld.wealth.R
 import java.io.IOException
+import java.util.Locale
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -25,7 +28,7 @@ import java.util.concurrent.TimeUnit
  * words meant for a person, and repeating them beats inventing worse
  * ones here.
  */
-class Api(private val baseUrl: String, private val token: String?) {
+class Api(private val context: Context, private val baseUrl: String, private val token: String?) {
 
     class Failure(val status: Int, message: String) : IOException(message)
 
@@ -35,7 +38,14 @@ class Api(private val baseUrl: String, private val token: String?) {
     companion object {
         val json = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
 
+        // The dashboard answers in its own language setting, and without
+        // one in the language the request asks for. OkHttp asks for none.
         private val client = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                chain.proceed(chain.request().newBuilder()
+                    .header("Accept-Language", Locale.getDefault().toLanguageTag())
+                    .build())
+            }
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
@@ -51,7 +61,7 @@ class Api(private val baseUrl: String, private val token: String?) {
         }
 
         /** Trade a pairing code for the token. No token yet, by definition. */
-        fun pair(baseUrl: String, code: String): Paired {
+        fun pair(context: Context, baseUrl: String, code: String): Paired {
             val url = normalise(baseUrl)
             val body = """{"code":"${code.trim()}"}""".toRequestBody("application/json".toMediaType())
             val req = Request.Builder().url("$url/api/v1/pair").post(body).build()
@@ -59,7 +69,7 @@ class Api(private val baseUrl: String, private val token: String?) {
                 val text = resp.body?.string().orEmpty()
                 val reply = runCatching { json.decodeFromString<Paired>(text) }.getOrNull()
                 if (!resp.isSuccessful || reply?.token == null) {
-                    throw Failure(resp.code, reply?.error ?: "The dashboard refused that code.")
+                    throw Failure(resp.code, reply?.error ?: context.getString(R.string.error_code_refused))
                 }
                 return reply
             }
@@ -91,7 +101,7 @@ class Api(private val baseUrl: String, private val token: String?) {
                 val why = runCatching {
                     json.parseToJsonElement(text).let { (it as? JsonObject)?.get("error")?.toString()?.trim('"') }
                 }.getOrNull()
-                throw Failure(resp.code, why ?: "The dashboard answered ${resp.code}.")
+                throw Failure(resp.code, why ?: context.getString(R.string.error_answered, resp.code))
             }
             return text
         }
@@ -99,7 +109,7 @@ class Api(private val baseUrl: String, private val token: String?) {
 
     private fun get(path: String, args: Map<String, String> = emptyMap()): String {
         val url = ("$baseUrl$path").toHttpUrlOrNull()?.newBuilder()
-            ?: throw Failure(0, "That address is not a URL.")
+            ?: throw Failure(0, context.getString(R.string.error_not_url))
         args.forEach { (k, v) -> url.addQueryParameter(k, v) }
         val req = Request.Builder().url(url.build())
             .header("Authorization", "Bearer ${token.orEmpty()}")
@@ -112,9 +122,9 @@ class Api(private val baseUrl: String, private val token: String?) {
                     json.parseToJsonElement(text).let { (it as? JsonObject)?.get("error")?.toString()?.trim('"') }
                 }.getOrNull()
                 throw Failure(resp.code, why ?: when (resp.code) {
-                    401 -> "This device is no longer paired — pair it again."
-                    404 -> "This dashboard does not know that address."
-                    else -> "The dashboard answered ${resp.code}."
+                    401 -> context.getString(R.string.error_unpaired)
+                    404 -> context.getString(R.string.error_not_found)
+                    else -> context.getString(R.string.error_answered, resp.code)
                 })
             }
             return text
@@ -125,7 +135,7 @@ class Api(private val baseUrl: String, private val token: String?) {
     fun snapshot(days: Int = 30): Snapshot {
         val text = get("/api/v1/tools/snapshot", mapOf("days" to days.toString()))
         val reply = json.decodeFromString(ToolReply.serializer(Snapshot.serializer()), text)
-        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
     /**
@@ -137,7 +147,7 @@ class Api(private val baseUrl: String, private val token: String?) {
      * does not survive the request being retried.
      */
     fun importFiles(accountId: Int, files: List<Upload>): ImportReply {
-        if (files.isEmpty()) throw Failure(0, "Nothing to send.")
+        if (files.isEmpty()) throw Failure(0, context.getString(R.string.error_nothing_to_send))
         val body = MultipartBody.Builder().setType(MultipartBody.FORM)
         files.forEach { f ->
             body.addFormDataPart("file", f.name,
@@ -150,9 +160,9 @@ class Api(private val baseUrl: String, private val token: String?) {
         client.newCall(req).execute().use { resp ->
             val text = resp.body?.string().orEmpty()
             val reply = runCatching { json.decodeFromString<ImportReply>(text) }.getOrNull()
-            if (reply == null) throw Failure(resp.code, "The dashboard answered ${resp.code}.")
+            if (reply == null) throw Failure(resp.code, context.getString(R.string.error_answered, resp.code))
             if (!resp.isSuccessful || !reply.ok) {
-                throw Failure(resp.code, reply.error ?: "The dashboard answered ${resp.code}.")
+                throw Failure(resp.code, reply.error ?: context.getString(R.string.error_answered, resp.code))
             }
             return reply
         }
@@ -164,14 +174,14 @@ class Api(private val baseUrl: String, private val token: String?) {
     fun holdings(): Holdings {
         val text = get("/api/v1/tools/holdings")
         val reply = json.decodeFromString(ToolReply.serializer(Holdings.serializer()), text)
-        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
     /** The net worth on a set of days — the line on the chart. */
     fun history(period: String = "1y"): History {
         val text = get("/api/v1/tools/net_worth_history", mapOf("period" to period))
         val reply = json.decodeFromString(ToolReply.serializer(History.serializer()), text)
-        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
     /** Where the money sits: by asset class, by region, by bucket. */
@@ -194,14 +204,14 @@ class Api(private val baseUrl: String, private val token: String?) {
         val text = post("/api/v1/tools/undo_import", mapOf(
             "account_id" to accountId.toString(), "import_id" to importId.toString()))
         val reply = json.decodeFromString(ToolReply.serializer(UndoneImport.serializer()), text)
-        return reply.result?.removed ?: throw Failure(200, reply.error ?: "Das Dashboard sagte nichts.")
+        return reply.result?.removed ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
     /** Income and spending per month, the dashboard's own arithmetic. */
     fun cashflow(months: Int = 13): Cashflow {
         val text = get("/api/v1/tools/cashflow", mapOf("months" to months.toString()))
         val reply = json.decodeFromString(ToolReply.serializer(Cashflow.serializer()), text)
-        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
     /** Quote every holding again and refetch the rates — no bank is
@@ -209,14 +219,14 @@ class Api(private val baseUrl: String, private val token: String?) {
     fun refreshMarket(): Market {
         val text = post("/api/v1/tools/refresh_market", emptyMap())
         val reply = json.decodeFromString(ToolReply.serializer(Market.serializer()), text)
-        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
     /** The queue of rows with no category, biggest first. */
     fun uncategorised(limit: Int = 60): Queue {
         val text = get("/api/v1/tools/uncategorised", mapOf("limit" to limit.toString()))
         val reply = json.decodeFromString(ToolReply.serializer(Queue.serializer()), text)
-        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
     /** Every category, for the sheet of choices. The tool answers with
@@ -232,7 +242,7 @@ class Api(private val baseUrl: String, private val token: String?) {
     fun unowned(limit: Int = 60): Unowned {
         val text = get("/api/v1/tools/unowned_spending", mapOf("limit" to limit.toString()))
         val reply = json.decodeFromString(ToolReply.serializer(Unowned.serializer()), text)
-        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
     /** The household, for "whose spending is this". */
@@ -271,7 +281,7 @@ class Api(private val baseUrl: String, private val token: String?) {
         }
         val text = get("/api/v1/tools/transactions", args)
         val reply = json.decodeFromString(ToolReply.serializer(TransactionPage.serializer()), text)
-        return reply.result ?: throw Failure(200, reply.error ?: "The dashboard sent nothing.")
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
 }
