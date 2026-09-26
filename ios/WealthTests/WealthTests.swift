@@ -5,6 +5,32 @@ import XCTest
 /// shapes, the address rules, the money rule and the error sentences.
 final class WealthTests: XCTestCase {
 
+    // CHANGELOG.md: the text before the first heading stays out, each
+    // "- " line is one note, newest release first.
+    func testChangelogParses() {
+        let text = """
+        # Was ist neu
+
+        Nur für die, die die Datei pflegen.
+
+        ## 1.2.7
+        - Eins
+        - Zwei
+
+        ## 1.2.6
+        - Drei
+        """
+        let releases = Release.parse(text)
+        XCTAssertEqual(releases.map(\.version), ["1.2.7", "1.2.6"])
+        XCTAssertEqual(releases.first?.notes, ["Eins", "Zwei"])
+        XCTAssertEqual(releases.last?.notes, ["Drei"])
+    }
+
+    // The app carries the repository's changelog, not a copy of it.
+    func testChangelogIsBundled() {
+        XCTAssertFalse(Release.changelog().isEmpty)
+    }
+
     // Contract rule 5: unknown fields ignored, missing ones survivable.
     func testSnapshotDecodesWithUnknownAndMissingFields() throws {
         let json = """

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		C042760B539CD00D61BFB8AD /* WealthWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 09BEDA4549F0B90DE3F378C8 /* WealthWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2769CC76B1961CCA6A47EBD7 /* WealthShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A163ACFCC162E967EDC0CA56 /* WealthShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7E4D2C1B0A9F8E6D5C3B2A19 /* CHANGELOG.md in Resources */ = {isa = PBXBuildFile; fileRef = 5C1A7E2D9B3F4A6C8E0D1B27 /* CHANGELOG.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,6 +56,7 @@
 		195F9293022CEE80C9E8D0C0 /* WealthTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WealthTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		09BEDA4549F0B90DE3F378C8 /* WealthWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WealthWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A163ACFCC162E967EDC0CA56 /* WealthShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WealthShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C1A7E2D9B3F4A6C8E0D1B27 /* CHANGELOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = CHANGELOG.md; path = ../CHANGELOG.md; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -125,6 +127,7 @@
 				D24D598BFCAB06D2813DD386 /* WealthWidget */,
 				E84A287B89A1AA13C0F22FA8 /* WealthShare */,
 				8F31C73D90E2A9A9741F91EE /* WealthTests */,
+				5C1A7E2D9B3F4A6C8E0D1B27 /* CHANGELOG.md */,
 				86024CAD1E83101D97359D73 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -291,6 +294,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7E4D2C1B0A9F8E6D5C3B2A19 /* CHANGELOG.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

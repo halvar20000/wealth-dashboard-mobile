@@ -5,6 +5,20 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+/** CHANGELOG.md at the top of the repository: one file, both apps. */
+val changelog = rootDir.resolve("../CHANGELOG.md")
+val changelogAssets = layout.buildDirectory.dir("generated/changelog").get().asFile
+val copyChangelog by tasks.registering(Sync::class) {
+    from(changelog)
+    into(changelogAssets)
+}
+tasks.named("preBuild") { dependsOn(copyChangelog) }
+
+/** The first `## x.y.z` in the changelog: the release being worked on. */
+fun nextVersion(): String =
+    Regex("^## (\\d+\\.\\d+\\.\\d+)", RegexOption.MULTILINE)
+        .find(if (changelog.exists()) changelog.readText() else "")?.groupValues?.get(1) ?: "0.0.0"
+
 android {
     namespace = "fr.smarthomeworld.wealth"
     compileSdk = 36
@@ -21,13 +35,15 @@ android {
         // versionCode 10203. A number nobody types by hand is a number
         // nobody forgets to raise — and Play refuses a bundle whose
         // versionCode it has already seen. Off a tag it stays at the
-        // development version, which never reaches a store.
+        // version at the top of CHANGELOG.md with "-dev" behind it, so a
+        // debug build says which release it is heading for; it never
+        // reaches a store.
         val tagged = Regex("^v?(\\d+)\\.(\\d+)\\.(\\d+)$")
             .matchEntire(System.getenv("GITHUB_REF_NAME") ?: "")?.groupValues
         versionCode = if (tagged != null)
             tagged[1].toInt() * 10000 + tagged[2].toInt() * 100 + tagged[3].toInt() else 1
         versionName = if (tagged != null)
-            "${tagged[1]}.${tagged[2]}.${tagged[3]}" else "0.2.0"
+            "${tagged[1]}.${tagged[2]}.${tagged[3]}" else "${nextVersion()}-dev"
     }
 
     // Signed from the environment, or not at all: a keystore in the
@@ -65,7 +81,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
+    // The changelog both apps read lives at the top of the repository,
+    // outside the Android project; it rides in the APK as an asset.
+    sourceSets["main"].assets.srcDir(changelogAssets)
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 

@@ -40,6 +40,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 16 | German, French, Spanish | 🚧 German 1.2.6 | 🚧 German 1.2.6 | the dashboard has all three. The apps follow the phone's language; a string added in English needs its German in the same pull request (Android: `values-de/strings.xml`; iOS: `ios/Shared/Localizable.xcstrings`, shared by app, widget and share sheet, plus `InfoPlist.xcstrings` per target). French and Spanish not started |
 | 17 | Cash flow: months, categories, what is left | ✅ 1.2.0 | ✅ 1.2.1 | `cashflow`, dashboard ≥ 0.73.0 |
 | 18 | Wear / watchOS complication | — | — | nobody has asked yet |
+| 19 | Version and "What's new" in Settings | ✅ 1.2.7 | ✅ 1.2.7 | the version from the tag; the notes from `CHANGELOG.md` at the top of the repository, which TestFlight's "What to Test" and the GitHub release read too |
 
 ## What the dashboard needs for each
 
