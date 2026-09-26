@@ -123,6 +123,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-15
     timeout-minutes: 45
+    outputs:
+      uploaded: ${{ steps.key.outputs.found }}
     env:
       ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -216,6 +218,72 @@ jobs:
             -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Remove the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
+
+  # TestFlight shows testers a "What to Test" text for each build. The
+  # upload carries none, so it is written afterwards through the App
+  # Store Connect API, on Linux: the step spends most of its time
+  # waiting for Apple to list the build.
+  #
+  # The text is the tag's own message when the tag is annotated
+  #   git tag -a v1.2.7 -m "Was es zu testen gibt …"
+  # and otherwise the titles of the pull requests merged since the
+  # previous tag, plus any commit pushed straight to main.
+  whats-new:
+    needs: testflight
+    if: needs.testflight.outputs.uploaded == 'yes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      ASC_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Write the notes
+        run: |
+          set -e
+          TAG="$GITHUB_REF_NAME"
+          # checkout leaves an annotated tag as a bare commit ref; fetch the
+          # tag object itself so its message can be read.
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          NOTES="$RUNNER_TEMP/notes.txt"
+          if [ "$(git cat-file -t "refs/tags/$TAG")" = tag ]; then
+            git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "$TAG" > "$NOTES"
+          else
+            PREV=$(git describe --tags --abbrev=0 --match 'v*' "$TAG^" 2>/dev/null || true)
+            RANGE="${PREV:+$PREV..}$TAG"
+            git log --first-parent --format='%H %s' "$RANGE" | while read -r SHA SUBJECT; do
+              if [[ "$SUBJECT" =~ ^Merge\ pull\ request\ \#([0-9]+) ]]; then
+                TITLE=$(gh pr view "${BASH_REMATCH[1]}" --json title -q .title 2>/dev/null || echo "$SUBJECT")
+                echo "• $TITLE"
+              elif [[ "$SUBJECT" != Merge* ]]; then
+                echo "• $SUBJECT"
+              fi
+            done > "$NOTES"
+          fi
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          V="${TAG#v}"; IFS=. read -r MA MI PA <<< "$V"
+          echo "BUILD=$(( MA * 10000 + MI * 100 + PA ))" >> "$GITHUB_ENV"
+          cat "$NOTES"
+          echo "NOTES=$NOTES" >> "$GITHUB_ENV"
+
+      - name: Put them on the TestFlight build
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/keys"
+          echo "$ASC_KEY" | base64 -d > "$RUNNER_TEMP/keys/AuthKey.p8"
+          export KEY_PATH="$RUNNER_TEMP/keys/AuthKey.p8"
+          pip install --quiet 'pyjwt[crypto]'
+          python3 .github/scripts/testflight_whats_new.py \
+            com.herbrig.wealthdashboard "$VERSION" "$BUILD" "$NOTES"
 
       - name: Remove the key
         if: always()
