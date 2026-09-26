@@ -1654,6 +1654,16 @@
         }
       }
     },
+    "Version" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        }
+      }
+    },
     "Waiting for you" : {
       "localizations" : {
         "de" : {
@@ -1703,6 +1713,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Was ist das?"
+          }
+        }
+      }
+    },
+    "What's new" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was ist neu"
           }
         }
       }

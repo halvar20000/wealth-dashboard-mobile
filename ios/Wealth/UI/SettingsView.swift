@@ -34,6 +34,13 @@ struct SettingsView: View {
                 } footer: {
                     Text("Removes the address, the token and every figure from this phone. Pairing again costs a new six-digit code.")
                 }
+                // Which build this is, and what each one brought. The
+                // version comes from the tag (see ios.yml); the notes from
+                // CHANGELOG.md, the same file TestFlight gets.
+                Section {
+                    LabeledContent("Version", value: Self.version)
+                    NavigationLink("What's new") { WhatsNewView() }
+                }
             }
             .navigationTitle("Settings")
             .onAppear { watching = model.watchEnabled }
@@ -41,5 +48,12 @@ struct SettingsView: View {
                 Button("Forget", role: .destructive) { model.forget() }
             }
         }
+    }
+
+    private static var version: String {
+        let info = Bundle.main.infoDictionary
+        let name = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(name) (\(build))"
     }
 }

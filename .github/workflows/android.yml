@@ -82,9 +82,16 @@ jobs:
         if: always()
         run: rm -f "$RUNNER_TEMP/keystore.jks"
 
+      # The release opens with what CHANGELOG.md says about this
+      # version; GitHub's list of merged pull requests follows it.
+      - name: Notes from the changelog
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: .github/scripts/changelog_notes.sh "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
+
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
+          body_path: ${{ runner.temp }}/notes.md
           files: |
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/bundle/release/*.aab

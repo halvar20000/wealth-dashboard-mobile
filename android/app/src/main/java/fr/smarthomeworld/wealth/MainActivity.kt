@@ -10,6 +10,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
@@ -297,7 +299,10 @@ private fun SettingsScreen(
     // the moment the switch is turned on, which is the moment it makes
     // sense — not on the first start, when it means nothing yet.
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    var showNews by remember { mutableStateOf(false) }
+    if (showNews) WhatsNewDialog { showNews = false }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.paired_with, server ?: stringResource(R.string.your_dashboard)), style = MaterialTheme.typography.bodyLarge)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
@@ -331,5 +336,16 @@ private fun SettingsScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        HorizontalDivider()
+        // Which build this is, and what each one brought. The version
+        // comes from the tag (see app/build.gradle.kts); the notes from
+        // CHANGELOG.md, the same file TestFlight gets.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.app_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            TextButton(onClick = { showNews = true }) { Text(stringResource(R.string.whats_new)) }
+        }
     }
 }

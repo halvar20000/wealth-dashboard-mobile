@@ -13,7 +13,8 @@ name: Build the iOS app
 #
 # A macOS runner starts only when:
 #   • a tag is pushed (a release must always build), or
-#   • the push or pull request actually touched ios/, or
+#   • the push or pull request actually touched ios/ (or CHANGELOG.md,
+#     which the app carries), or
 #   • somebody asks for it by hand, or
 #   • this workflow itself changed.
 #
@@ -63,7 +64,7 @@ jobs:
             echo "build=yes" >> "$GITHUB_OUTPUT"; exit 0
           fi
           if git diff --name-only "$base" "$GITHUB_SHA" \
-             | grep -qE '^(ios/|\.github/workflows/ios\.yml)'; then
+             | grep -qE '^(ios/|CHANGELOG\.md|\.github/workflows/ios\.yml)'; then
             echo "ios/ changed."
             echo "build=yes" >> "$GITHUB_OUTPUT"
           else
@@ -255,7 +256,13 @@ jobs:
           # tag object itself so its message can be read.
           git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
           NOTES="$RUNNER_TEMP/notes.txt"
-          if [ "$(git cat-file -t "refs/tags/$TAG")" = tag ]; then
+          # CHANGELOG.md first: it is written for the people who use the
+          # app, and they see the same lines under "What's new". Then the
+          # tag's message, then the titles of what was merged.
+          .github/scripts/changelog_notes.sh "${TAG#v}" > "$NOTES"
+          if [ -s "$NOTES" ]; then
+            :
+          elif [ "$(git cat-file -t "refs/tags/$TAG")" = tag ]; then
             git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "$TAG" > "$NOTES"
           else
             PREV=$(git describe --tags --abbrev=0 --match 'v*' "$TAG^" 2>/dev/null || true)

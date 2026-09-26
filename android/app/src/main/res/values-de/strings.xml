@@ -45,6 +45,9 @@
     <string name="setting_watch_note">Alle paar Stunden: senden, was du offline entschieden hast, Zahlen und Widget aktualisieren, und Bescheid geben, wenn ein Konto bald leer ist, eine Bankverbindung nicht mehr läuft oder die Warteschlange gewachsen ist.</string>
     <string name="forget">Dieses Dashboard vergessen</string>
     <string name="forget_note">Vergessen entfernt das Token von diesem Telefon. Das Dashboard läuft weiter; kopple jederzeit neu mit einem neuen Code.</string>
+    <string name="app_version">Version %1$s (%2$d)</string>
+    <string name="whats_new">Was ist neu</string>
+    <string name="close">Schließen</string>
     <string name="pair_intro">Öffne das Dashboard im Browser, geh zu Einstellungen → Assistenten → Telefon oder Tablet koppeln und gib hier ein, was es anzeigt.</string>
     <string name="pair_address">Adresse</string>
     <string name="pair_code">Kopplungscode</string>
