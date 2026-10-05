@@ -231,7 +231,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (hadPortfolio) loadPortfolio()
         if (hadCashflow) loadCashflow()
         if (hadTriage) loadTriage(_triage.value.owning)
-        if (_txns.value != null) loadTransactions(lastTxns.first, lastTxns.second)
+        if (_txns.value != null) loadTransactions(lastTxns.first, lastTxns.second, lastCategory)
     }
 
     // ── Cash flow ────────────────────────────────────────────────
@@ -392,12 +392,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** What the rows tab last asked for, to ask again after a switch. */
     private var lastTxns: Pair<Int?, String?> = null to null
+    private var lastCategory: String? = null
 
-    fun loadTransactions(accountId: Int? = null, query: String? = null) {
+    /** The rows behind a figure. `category` is what the Cash Flow page
+     *  hands over when a line is tapped: the slug, not the label, so a
+     *  renamed category still finds its rows. */
+    fun loadTransactions(accountId: Int? = null, query: String? = null, category: String? = null) {
         lastTxns = accountId to query
+        lastCategory = category
         _txns.value = null
         viewModelScope.launch {
-            runCatching { repo.transactions(accountId, query) }
+            runCatching { repo.transactions(accountId, query, category = category) }
                 .onSuccess { _txns.value = it }
                 .onFailure { e ->
                     _state.value = _state.value.copy(

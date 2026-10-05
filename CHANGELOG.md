@@ -13,3 +13,4 @@ Apps nicht.
 
 ## 1.2.7
 - Die Einstellungen zeigen die Version der App und, unter „Was ist neu“, was sich in jeder Version geändert hat.
+- Cashflow: Ein Tipp auf eine Kategorie zeigt die Buchungen dahinter — bei den Ausgaben wie bei den Einnahmen.

@@ -27,8 +27,9 @@ class Repo(private val store: Store) {
         Loaded(snapshot, System.currentTimeMillis(), false, whose)
     }
 
-    suspend fun transactions(accountId: Int? = null, query: String? = null, limit: Int = 100) =
-        withContext(Dispatchers.IO) { store.api().transactions(accountId, query, limit) }
+    suspend fun transactions(accountId: Int? = null, query: String? = null, limit: Int = 100,
+                             category: String? = null) =
+        withContext(Dispatchers.IO) { store.api().transactions(accountId, query, limit, category) }
 
     /** The household, for the switch at the top. A dashboard older than
      *  0.72.4 has no `people`; it answers 404 and the switch stays away. */

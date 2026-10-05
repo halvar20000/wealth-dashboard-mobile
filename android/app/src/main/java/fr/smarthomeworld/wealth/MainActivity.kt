@@ -91,6 +91,10 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
     var tab by rememberSaveable { mutableStateOf(start) }
     LaunchedEffect(start) { if (start == Tab.Triage) vm.loadTriage(owning = false) }
     var account by remember { mutableStateOf<Account?>(null) }
+    // Set when a Cash Flow line was tapped: the list then says which
+    // figure it is the rows behind, and the search stays inside it.
+    var categoryFilter by rememberSaveable { mutableStateOf<String?>(null) }
+    var categoryTitle by rememberSaveable { mutableStateOf("") }
 
     if (!state.paired) {
         PairScreen(state.pairing, state.error) { url, code -> vm.pair(url, code) }
@@ -177,15 +181,26 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 account != null -> TransactionsScreen(txns, account!!.name) { q ->
                     vm.loadTransactions(account!!.id, q)
                 }
-                tab == Tab.Transactions -> TransactionsScreen(txns, stringResource(R.string.search_everything)) { q ->
-                    vm.loadTransactions(null, q)
-                }
+                tab == Tab.Transactions -> TransactionsScreen(
+                    txns,
+                    categoryTitle.ifBlank { stringResource(R.string.search_everything) },
+                ) { q -> vm.loadTransactions(null, q, categoryFilter) }
                 tab == Tab.Cashflow -> CashflowScreen(
                     state = cashflow,
                     baseCurrency = snap?.baseCurrency ?: "EUR",
                     onMonths = { vm.loadCashflow(it) },
                     onRefresh = { vm.loadCashflow() },
-                    onTransactions = { tab = Tab.Transactions; vm.loadTransactions() },
+                    onTransactions = {
+                        tab = Tab.Transactions
+                        categoryFilter = null; categoryTitle = ""
+                        vm.loadTransactions()
+                    },
+                    onCategory = { slug, label ->
+                        categoryFilter = slug
+                        categoryTitle = label
+                        tab = Tab.Transactions
+                        vm.loadTransactions(category = slug)
+                    },
                 )
                 tab == Tab.Portfolio -> PortfolioScreen(
                     state = portfolio,
@@ -242,7 +257,11 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     excluded = state.excluded,
                     onToggleClass = { vm.toggleClass(it) },
                     onAccounts = { tab = Tab.Portfolio; vm.loadPortfolio() },
-                    onTransactions = { tab = Tab.Transactions; vm.loadTransactions() },
+                    onTransactions = {
+                        tab = Tab.Transactions
+                        categoryFilter = null; categoryTitle = ""
+                        vm.loadTransactions()
+                    },
                 )
             }
             if (state.loading && snap != null) {

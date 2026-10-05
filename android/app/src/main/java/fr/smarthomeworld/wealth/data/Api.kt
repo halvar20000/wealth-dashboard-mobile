@@ -290,11 +290,13 @@ class Api(
         }
     }
 
-    fun transactions(accountId: Int? = null, query: String? = null, limit: Int = 100): TransactionPage {
+    fun transactions(accountId: Int? = null, query: String? = null, limit: Int = 100,
+                     category: String? = null): TransactionPage {
         val args = buildMap {
             put("limit", limit.toString())
             accountId?.let { put("account_id", it.toString()) }
             query?.takeIf { it.isNotBlank() }?.let { put("q", it.trim()) }
+            category?.takeIf { it.isNotBlank() }?.let { put("category", it.trim()) }
         }
         val text = get("/api/v1/tools/transactions", args)
         val reply = json.decodeFromString(ToolReply.serializer(TransactionPage.serializer()), text)

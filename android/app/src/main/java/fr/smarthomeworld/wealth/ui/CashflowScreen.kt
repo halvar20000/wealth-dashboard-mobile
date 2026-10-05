@@ -38,6 +38,9 @@ fun CashflowScreen(
     onMonths: (Int) -> Unit,
     onRefresh: () -> Unit,
     onTransactions: () -> Unit = {},
+    /** A line was tapped: the category's slug and its label, for the
+     *  list of rows behind the figure. */
+    onCategory: (String, String) -> Unit = { _, _ -> },
 ) {
     val flow = state.flow
     LazyColumn(
@@ -123,7 +126,10 @@ fun CashflowScreen(
         }
         items(flow.byCategory.take(14)) { c ->
             val share = if (flow.averageSpending > 0) c.perMonth / flow.averageSpending else 0.0
-            Column(Modifier.fillMaxWidth()) {
+            // A figure nobody can open is a figure nobody can check:
+            // tapping a line asks for the rows that make it.
+            Column(Modifier.fillMaxWidth()
+                .clickable { onCategory(c.category, c.label.ifBlank { c.category }) }) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(c.label.ifBlank { c.category }, style = MaterialTheme.typography.bodyMedium)
                     Text(stringResource(R.string.per_month, Fmt.money(c.perMonth, ccy)),
@@ -144,7 +150,9 @@ fun CashflowScreen(
                     fontWeight = FontWeight.SemiBold)
             }
             items(flow.incomeByCategory.take(8)) { c ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(Modifier.fillMaxWidth()
+                        .clickable { onCategory(c.category, c.label.ifBlank { c.category }) },
+                    horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(c.label.ifBlank { c.category }, style = MaterialTheme.typography.bodyMedium)
                     Text(stringResource(R.string.per_month, Fmt.money(c.perMonth, ccy)),
                         style = MaterialTheme.typography.bodyMedium,
