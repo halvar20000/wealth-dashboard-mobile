@@ -41,10 +41,10 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 17 | Cash flow: months, categories, what is left | ✅ 1.2.0 | ✅ 1.2.1 | `cashflow`, dashboard ≥ 0.73.0 |
 | 18 | Wear / watchOS complication | — | — | nobody has asked yet |
 | 19 | Version and "What's new" in Settings | ✅ 1.2.7 | ✅ 1.2.7 | the version from the tag; the notes from `CHANGELOG.md` at the top of the repository, which TestFlight's "What to Test" and the GitHub release read too |
-| 17a | Cash flow: a category opens the rows behind it | ✅ 1.2.7 | ✅ 1.2.7 | `transactions` with `category` (the slug) |
-| 20 | A row's own page: every field, file it, correct it | ✅ 1.2.7 | ✅ 1.2.7 | from every list of rows; `set_category` (remember off by default) and `update_transaction` (description, counterparty, date, amount) |
-| 21 | Categories: make, rename, recolour, regroup, delete | ✅ 1.2.7 | ✅ 1.2.7 | Settings → Categories; `add_category`, `update_category`, `delete_category`, dashboard ≥ 0.79.2 |
-| 22 | Accounts by type, each type with its sum | ✅ 1.2.7 | ✅ 1.2.7 | Portfolio → Accounts; the depots' total among them |
+| 17a | Cash flow: a category opens the rows behind it | ✅ 1.2.7 | ✅ 1.2.8 | `transactions` with `category` (the slug) |
+| 20 | A row's own page: every field, file it, correct it | ✅ 1.2.8 | ✅ 1.2.8 | from every list of rows; `set_category` (remember off by default) and `update_transaction` (description, counterparty, date, amount) |
+| 21 | Categories: make, rename, recolour, regroup, delete | ✅ 1.2.8 | ✅ 1.2.8 | Settings → Categories; `add_category`, `update_category`, `delete_category`, dashboard ≥ 0.79.2 |
+| 22 | Accounts by type, each type with its sum | ✅ 1.2.8 | ✅ 1.2.8 | Portfolio → Accounts; the depots' total among them |
 
 ## What the dashboard needs for each
 
