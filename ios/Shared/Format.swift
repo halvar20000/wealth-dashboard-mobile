@@ -12,7 +12,8 @@ extension Color {
 }
 
 /// Numbers as the phone's language writes them, in the money's own unit
-/// (contract rule 3): two decimals under 1 000, none above.
+/// (contract rule 3): always with its cents, so 3 300 € and 200,30 €
+/// read alike — "3.300,00 €".
 enum Fmt {
     static func money(_ value: Double?, _ currency: String?, locale: Locale = .current) -> String {
         guard let value else { return "—" }
@@ -20,9 +21,8 @@ enum Fmt {
         f.locale = locale
         f.numberStyle = .currency
         f.currencyCode = (currency ?? "EUR").uppercased()
-        let decimals = abs(value) < 1000 ? 2 : 0
-        f.minimumFractionDigits = decimals
-        f.maximumFractionDigits = decimals
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
         return f.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 

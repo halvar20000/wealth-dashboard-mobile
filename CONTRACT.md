@@ -114,7 +114,7 @@ one of them is wrong.
    The thumb never waits for the radio.
 3. **Money is formatted by the device's locale, in the dashboard's
    base currency**, with the day the figures were read shown next to
-   them. Two decimals under 1 000, none above.
+   them. Always two decimals, whatever the size (3.300,00 €).
 4. **Nothing leaves the phone except to the paired dashboard.** No
    analytics, no crash reporter, no advertising id. The token, the last
    figures and the pending verdicts live in the platform's encrypted

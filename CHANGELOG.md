@@ -11,6 +11,9 @@ Tag kommt darüber eine neue. Eine Überschrift ist `## 1.2.3`, jeder
 Eintrag eine Zeile mit `- `. Text vor der ersten Überschrift zeigen die
 Apps nicht.
 
+## 1.2.9
+- Beträge sehen überall gleich aus: immer mit Cent, z. B. 3.300,00 € statt 3.300 € neben 200,30 €.
+
 ## 1.2.8
 - Jede Buchung lässt sich antippen: Die Detailseite zeigt alles zum Eintrag, man kann sie direkt kategorisieren und Beschreibung, Gegenpartei, Datum und Betrag korrigieren — unter Portfolio → Konto, in den Buchungen einer Cashflow-Kategorie und unter Cashflow → Alle Buchungen.
 - Einstellungen → Kategorien: Kategorien anlegen, umbenennen, umfärben, als Ausgabe/Einnahme einordnen und löschen (braucht Dashboard 0.79.2).

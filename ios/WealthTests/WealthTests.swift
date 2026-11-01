@@ -194,11 +194,13 @@ final class WealthTests: XCTestCase {
         XCTAssertEqual(Api.normalise(""), "")
     }
 
-    // Contract rule 3: two decimals under 1 000, none above.
+    // Contract rule 3: money always with two decimals.
     func testMoneyDecimals() {
         let us = Locale(identifier: "en_US")
         XCTAssertEqual(Fmt.money(999.5, "USD", locale: us), "$999.50")
-        XCTAssertEqual(Fmt.money(1234.56, "USD", locale: us), "$1,235")
+        XCTAssertEqual(Fmt.money(1234.56, "USD", locale: us), "$1,234.56")
+        XCTAssertEqual(Fmt.money(3300, "USD", locale: us), "$3,300.00")
+        XCTAssertEqual(Fmt.signedMoney(3300, "USD", locale: us), "+$3,300.00")
         XCTAssertEqual(Fmt.money(nil, "USD", locale: us), "—")
         XCTAssertEqual(Fmt.signedMoney(-12.5, "USD", locale: us), "−$12.50")
         XCTAssertEqual(Fmt.percent(0.0512, locale: us), "+5.12 %")
