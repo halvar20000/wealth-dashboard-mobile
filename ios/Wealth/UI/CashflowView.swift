@@ -63,17 +63,28 @@ struct CashflowView: View {
                     }
                 }
 
+                // Every row behind the page, each one open to look at and file.
+                Section {
+                    NavigationLink("All transactions") { TransactionsView(account: nil) }
+                }
+
                 if let spending = flow.byCategory, !spending.isEmpty {
                     Section("Where it goes") {
                         ForEach(spending.prefix(14), id: \.self) { c in
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text(c.title)
-                                    Spacer()
-                                    Text("\(Fmt.money(c.perMonth, ccy)) / month").fontWeight(.semibold)
+                            // A figure nobody can open is a figure nobody
+                            // can check: the rows that make it are a tap away.
+                            NavigationLink {
+                                TransactionsView(account: nil, category: c.category, categoryTitle: c.title)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(c.title)
+                                        Spacer()
+                                        Text("\(Fmt.money(c.perMonth, ccy)) / month").fontWeight(.semibold)
+                                    }
+                                    ProgressView(value: share(c.perMonth, of: flow.averageSpending))
+                                        .tint(Color(hex: c.colour) ?? .accentColor)
                                 }
-                                ProgressView(value: share(c.perMonth, of: flow.averageSpending))
-                                    .tint(Color(hex: c.colour) ?? .accentColor)
                             }
                         }
                     }
@@ -82,12 +93,16 @@ struct CashflowView: View {
                 if let income = flow.incomeByCategory, !income.isEmpty {
                     Section("Where it comes from") {
                         ForEach(income.prefix(8), id: \.self) { c in
-                            HStack {
-                                Text(c.title)
-                                Spacer()
-                                Text("\(Fmt.money(c.perMonth, ccy)) / month")
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(Color.gain)
+                            NavigationLink {
+                                TransactionsView(account: nil, category: c.category, categoryTitle: c.title)
+                            } label: {
+                                HStack {
+                                    Text(c.title)
+                                    Spacer()
+                                    Text("\(Fmt.money(c.perMonth, ccy)) / month")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Color.gain)
+                                }
                             }
                         }
                     }

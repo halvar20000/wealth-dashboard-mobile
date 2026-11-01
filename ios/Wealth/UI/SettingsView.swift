@@ -14,6 +14,12 @@ struct SettingsView: View {
                         LabeledContent("Dashboard version", value: version)
                     }
                 }
+                // The dashboard's category list, to make and change them here.
+                Section {
+                    NavigationLink("Categories") { CategoriesView() }
+                } footer: {
+                    Text("Create and edit the categories.")
+                }
                 Section {
                     Toggle("Ask to unlock", isOn: Binding(get: { model.lockEnabled },
                                                           set: { model.setLock($0) }))

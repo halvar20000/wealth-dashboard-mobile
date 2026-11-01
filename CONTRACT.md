@@ -68,10 +68,12 @@ is the authority; the table below is what the clients actually use.
 | `holdings` | per security: isin, name, symbol, quantity, `net_invested`, price, `value_base`, accounts | the portfolio list |
 | `allocation` | `dimensions.asset_class.rows[]` of `{key, value, share, target, drift}`, plus `cash`, `total` | the ring |
 | `performance` | TWR/MWR for `all`, `ytd`, `1y`, and per holding under its ISIN | the return beside each position |
-| `transactions` | rows, newest first; filters `q`, `account_id`, `category`, `kind`, dates, `limit` | the rows tab, search |
+| `transactions` | rows, newest first; filters `q`, `account_id`, `category`, `kind`, dates, `limit` | the rows tab, search, the rows behind a cash-flow line |
 | `uncategorised` | `{remaining, transactions[]}`, each with the app's own `suggestion` and the `pattern` a rule would remember | the triage stack |
 | `categories` | a **bare list** of `{slug, label, group, colour, transactions}` | the category sheet |
-| `set_category` | files one row; `remember` (default true) also stores a rule from `pattern` | a swipe |
+| `set_category` | files one row; `remember` (default true) also stores a rule from `pattern` | a swipe; a row's own page, with `remember` off |
+| `update_transaction` | corrects the fields given on one row; the correction survives the next import | a row's own page |
+| `add_category` / `update_category` / `delete_category` | the category list, as Settings → Categories edits it (dashboard ≥ 0.79.2) | Settings → Categories |
 | `people` / `unowned_spending` | the household; the spending nobody claimed | the "whose" stack (dashboard ≥ 0.72.4) |
 | `set_owner` | files a row to a person id or `"shared"` | a swipe |
 | `apply_rules` | re-runs every rule over everything (dashboard ≥ 0.72.6) | after a fix |

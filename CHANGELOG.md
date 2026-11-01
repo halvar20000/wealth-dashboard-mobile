@@ -14,3 +14,6 @@ Apps nicht.
 ## 1.2.7
 - Die Einstellungen zeigen die Version der App und, unter „Was ist neu“, was sich in jeder Version geändert hat.
 - Cashflow: Ein Tipp auf eine Kategorie zeigt die Buchungen dahinter — bei den Ausgaben wie bei den Einnahmen.
+- Jede Buchung lässt sich antippen: Die Detailseite zeigt alles zum Eintrag, man kann sie direkt kategorisieren und Beschreibung, Gegenpartei, Datum und Betrag korrigieren — unter Portfolio → Konto, in den Buchungen einer Cashflow-Kategorie und unter Cashflow → Alle Buchungen.
+- Einstellungen → Kategorien: Kategorien anlegen, umbenennen, umfärben, als Ausgabe/Einnahme einordnen und löschen (braucht Dashboard 0.79.2).
+- Portfolio → Konten: nach Kontoart gruppiert, jede Gruppe mit ihrer Summe — die Depots mit ihrer Gesamtsumme — und oben alle Konten zusammen.

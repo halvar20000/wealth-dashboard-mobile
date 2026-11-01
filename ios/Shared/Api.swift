@@ -124,9 +124,11 @@ struct Api {
         try await tool("snapshot", ["days": String(days)], as: Snapshot.self)
     }
 
-    func transactions(accountId: Int? = nil, query: String? = nil, limit: Int = 100) async throws -> TransactionPage {
+    func transactions(accountId: Int? = nil, query: String? = nil, category: String? = nil,
+                      limit: Int = 100) async throws -> TransactionPage {
         var args = ["limit": String(limit)]
         if let accountId { args["account_id"] = String(accountId) }
+        if let category, !category.isEmpty { args["category"] = category }
         if let q = query?.trimmingCharacters(in: .whitespaces), !q.isEmpty { args["q"] = q }
         return try await tool("transactions", args, as: TransactionPage.self)
     }
@@ -204,6 +206,40 @@ struct Api {
             _ = try await post("set_owner", ["txn_id": verdict.txnId, "owner": owner,
                                              "remember": verdict.remember], as: Ignored.self)
         }
+    }
+
+    // MARK: One row, and the categories themselves
+
+    /// File one row, now — the detail page's choice, not the triage's
+    /// queue. `remember` off means this row only.
+    func setCategory(txnId: Int, category: String, remember: Bool, pattern: String?) async throws {
+        var args: [String: Any] = ["txn_id": txnId, "category": category, "remember": remember]
+        if let pattern = pattern?.trimmingCharacters(in: .whitespaces), !pattern.isEmpty { args["pattern"] = pattern }
+        _ = try await post("set_category", args, as: Ignored.self)
+    }
+
+    /// Correct the fields given on one row; answers with the row as it is now.
+    func updateTransaction(txnId: Int, fields: [String: Any]) async throws -> TxnPatch {
+        var args = fields
+        args["txn_id"] = txnId
+        return try await post("update_transaction", args, as: TxnPatch.self)
+    }
+
+    /// A new category (dashboard ≥ 0.79.2).
+    func addCategory(label: String, colour: String, group: String) async throws -> Category {
+        try await post("add_category", ["label": label, "colour": colour, "group": group], as: Category.self)
+    }
+
+    /// Rename, recolour or regroup one; the slug stays (dashboard ≥ 0.79.2).
+    func updateCategory(slug: String, label: String, colour: String, group: String?) async throws -> Category {
+        var args: [String: Any] = ["slug": slug, "label": label, "colour": colour]
+        if let group { args["group"] = group }
+        return try await post("update_category", args, as: Category.self)
+    }
+
+    /// Remove one; its rows move to "other". Answers how many moved.
+    func deleteCategory(slug: String) async throws -> Int {
+        try await post("delete_category", ["slug": slug], as: DeletedCategory.self).moved ?? 0
     }
 
     // MARK: A statement into an account

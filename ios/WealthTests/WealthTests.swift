@@ -31,6 +31,52 @@ final class WealthTests: XCTestCase {
         XCTAssertFalse(Release.changelog().isEmpty)
     }
 
+    // An amount typed on the phone, either way round.
+    func testAmountParsesBothWays() {
+        XCTAssertEqual(parseAmount("-12,50"), -12.5)
+        XCTAssertEqual(parseAmount("−12.50"), -12.5)
+        XCTAssertEqual(parseAmount("1.234,56"), 1234.56)
+        XCTAssertEqual(parseAmount("1,234.56"), 1234.56)
+        XCTAssertEqual(parseAmount("1234"), 1234)
+        XCTAssertNil(parseAmount("zwölf"))
+        XCTAssertNil(parseAmount(""))
+    }
+
+    // The category list as the dashboard sends it, with what may be edited.
+    func testCategoryDecodesWhatMayBeEdited() throws {
+        let json = """
+        {"ok": true, "result": [
+          {"slug": "income", "label": "Einkommen", "group": "income", "colour": "#34d399",
+           "transactions": 12, "rules": 2, "deletable": false, "group_locked": true, "builtin": true},
+          {"slug": "tiere", "label": "Tiere", "group": "spending"}]}
+        """
+        let list = try Api.decoder.decode(ToolReply<[Wealth.Category]>.self, from: Data(json.utf8)).result ?? []
+        XCTAssertEqual(list.map(\Wealth.Category.slug), ["income", "tiere"])
+        XCTAssertEqual(list[0].groupLocked, true)
+        XCTAssertEqual(list[0].deletable, false)
+        XCTAssertEqual(list[0].rules, 2)
+        XCTAssertNil(list[1].deletable)
+    }
+
+    // A correction keeps what update_transaction does not send back.
+    func testPatchKeepsTheAccountName() throws {
+        let row = Txn(id: 7, accountId: 1, account: "Giro", txnDate: "2026-10-01",
+                      description: "REWE 123", counterparty: nil, amount: -12.5, currency: "EUR",
+                      kind: "withdrawal", category: nil)
+        let json = """
+        {"ok": true, "result": {"id": 7, "txn_date": "2026-10-02", "description": "REWE",
+          "counterparty": "REWE Markt", "amount": -13.0, "currency": "EUR", "kind": "withdrawal",
+          "category": "food", "source": "manual"}}
+        """
+        let patch = try XCTUnwrap(Api.decoder.decode(ToolReply<TxnPatch>.self, from: Data(json.utf8)).result)
+        let now = patch.onto(row)
+        XCTAssertEqual(now.account, "Giro")
+        XCTAssertEqual(now.txnDate, "2026-10-02")
+        XCTAssertEqual(now.amount, -13.0)
+        XCTAssertEqual(now.category, "food")
+        XCTAssertEqual(now.counterparty, "REWE Markt")
+    }
+
     // Contract rule 5: unknown fields ignored, missing ones survivable.
     func testSnapshotDecodesWithUnknownAndMissingFields() throws {
         let json = """

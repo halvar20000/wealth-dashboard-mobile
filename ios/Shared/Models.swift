@@ -142,6 +142,44 @@ struct Txn: Codable, Identifiable, Hashable {
     var securityName: String?
     var quantity: Double?
     var price: Double?
+    /// Comma-separated words, as the dashboard stores them.
+    var tags: String?
+    /// Where the row came from: an import, a bank sync, typed by hand.
+    var source: String?
+    var fee: Double?
+    var tax: Double?
+
+    var headline: String {
+        let text = (description ?? "").trimmingCharacters(in: .whitespaces)
+        if !text.isEmpty { return text }
+        return counterparty ?? kind ?? "—"
+    }
+}
+
+/// What `update_transaction` answers: the row's own fields, without the
+/// account's name — which is why it is laid over the row on screen
+/// rather than replacing it.
+struct TxnPatch: Decodable {
+    var id: Int?
+    var txnDate: String?
+    var description: String?
+    var counterparty: String?
+    var amount: Double?
+    var currency: String?
+    var kind: String?
+    var category: String?
+
+    func onto(_ t: Txn) -> Txn {
+        var out = t
+        out.txnDate = txnDate ?? t.txnDate
+        out.description = description
+        out.counterparty = counterparty
+        out.amount = amount ?? t.amount
+        out.currency = currency ?? t.currency
+        out.kind = kind ?? t.kind
+        out.category = category
+        return out
+    }
 }
 
 // MARK: Cash flow (dashboard ≥ 0.73.0)
@@ -468,9 +506,21 @@ struct Category: Codable, Identifiable, Hashable {
     var colour: String?
     /// How many rows carry it — the sheet puts the used ones first.
     var transactions: Int?
+    /// How many rules file into it, so deleting can say what goes.
+    var rules: Int?
+    /// False for the four the dashboard reasons about by name.
+    var deletable: Bool?
+    /// True where the group is wired in (income, investment, transfer).
+    var groupLocked: Bool?
 
     var id: String { slug }
     var title: String { label ?? slug }
+}
+
+/// What `delete_category` answers: how many rows moved to "other".
+struct DeletedCategory: Decodable {
+    var slug: String?
+    var moved: Int?
 }
 
 /// One of the household, for "whose spending is this".

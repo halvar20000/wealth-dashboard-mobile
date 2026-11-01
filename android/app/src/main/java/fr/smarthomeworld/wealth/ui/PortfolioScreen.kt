@@ -135,18 +135,49 @@ fun PortfolioScreen(
                 }
             }
             1 -> item { AllocationCard(state) }
-            else -> items(accounts, key = { it.id }) { a ->
-                ListItem(
-                    headlineContent = { Text(a.name) },
-                    supportingContent = {
-                        Text(listOfNotNull(a.bank, a.type).joinToString(" · ").ifBlank { stringResource(R.string.account) })
-                    },
-                    trailingContent = {
-                        Text(Fmt.money(a.balanceBase ?: a.balance, state.baseCurrency),
+            else -> {
+                // The accounts by kind, each kind with its sum — the
+                // depots' total is the figure people look for here —
+                // and all of them together on top.
+                item(key = "all") {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(stringResource(R.string.accounts_total), style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold)
-                    },
-                    modifier = Modifier.clickable { onAccount(a) },
-                )
+                        Text(Fmt.money(accounts.sumOf { it.balanceBase ?: 0.0 }, state.baseCurrency),
+                            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    }
+                }
+                accountGroups(accounts).forEach { (type, group) ->
+                    item(key = "type-$type") {
+                        Card(shape = RoundedCornerShape(14.dp)) {
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Text(accountType(type), style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold)
+                                val sum = group.sumOf { it.balanceBase ?: 0.0 }
+                                Text(Fmt.money(sum, state.baseCurrency),
+                                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
+                                    color = if (sum < 0) Loss else MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+                    items(group, key = { it.id }) { a ->
+                        ListItem(
+                            headlineContent = { Text(a.name) },
+                            supportingContent = {
+                                Text(listOfNotNull(a.bank, a.asOf?.let { Fmt.day(it) }).joinToString(" · ")
+                                    .ifBlank { stringResource(R.string.account) })
+                            },
+                            trailingContent = {
+                                Text(Fmt.money(a.balanceBase ?: a.balance, state.baseCurrency),
+                                    fontWeight = FontWeight.SemiBold)
+                            },
+                            modifier = Modifier.clickable { onAccount(a) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -290,6 +321,28 @@ private fun AllocationCard(state: PortfolioState) {
             Detail(stringResource(R.string.of_which_cash), Fmt.money(state.allocation.cash, state.baseCurrency))
         }
     }
+}
+
+/** The dashboard's account types, in its own order, depots first among
+ *  the investments; an unknown type joins "other". */
+private val TYPE_ORDER = listOf("bank", "savings", "card", "broker", "pension", "p2p", "property", "loan", "other")
+
+internal fun accountGroups(accounts: List<Account>): List<Pair<String, List<Account>>> =
+    accounts.groupBy { a -> a.type?.takeIf { it in TYPE_ORDER } ?: "other" }
+        .toList()
+        .sortedBy { TYPE_ORDER.indexOf(it.first) }
+
+@Composable
+private fun accountType(type: String): String = when (type) {
+    "bank" -> stringResource(R.string.type_bank)
+    "savings" -> stringResource(R.string.type_savings)
+    "card" -> stringResource(R.string.type_card)
+    "broker" -> stringResource(R.string.type_broker)
+    "loan" -> stringResource(R.string.type_loan)
+    "pension" -> stringResource(R.string.type_pension)
+    "p2p" -> stringResource(R.string.type_p2p)
+    "property" -> stringResource(R.string.type_property)
+    else -> stringResource(R.string.type_other)
 }
 
 /** The dashboard's slugs, in words. An unknown one is shown as it is. */
