@@ -130,14 +130,14 @@ private fun Details(
         t.counterparty?.takeIf { it.isNotBlank() }?.let { Line(stringResource(R.string.txn_counterparty), it) }
         t.description?.takeIf { it.isNotBlank() }?.let { Line(stringResource(R.string.txn_description), it) }
         Line(stringResource(R.string.txn_kind), kindLabel(t.kind))
-        Line(stringResource(R.string.txn_amount), Fmt.money(t.amount, t.currency, decimals = true))
+        Line(stringResource(R.string.txn_amount), Fmt.money(t.amount, t.currency))
         (t.securityName ?: t.isin)?.let { name ->
             Line(stringResource(R.string.txn_security), listOfNotNull(name, t.isin.takeIf { t.securityName != null }).joinToString(" · "))
         }
         t.quantity?.let { Line(stringResource(R.string.txn_quantity), Fmt.quantity(it)) }
-        t.price?.let { Line(stringResource(R.string.txn_price), Fmt.money(it, t.currency, decimals = true)) }
-        t.fee?.takeIf { it != 0.0 }?.let { Line(stringResource(R.string.txn_fee), Fmt.money(it, t.currency, decimals = true)) }
-        t.tax?.takeIf { it != 0.0 }?.let { Line(stringResource(R.string.txn_tax), Fmt.money(it, t.currency, decimals = true)) }
+        t.price?.let { Line(stringResource(R.string.txn_price), Fmt.money(it, t.currency)) }
+        t.fee?.takeIf { it != 0.0 }?.let { Line(stringResource(R.string.txn_fee), Fmt.money(it, t.currency)) }
+        t.tax?.takeIf { it != 0.0 }?.let { Line(stringResource(R.string.txn_tax), Fmt.money(it, t.currency)) }
         t.tags?.takeIf { it.isNotBlank() }?.let { Line(stringResource(R.string.txn_tags), it.split(',').joinToString(", ") { s -> s.trim() }) }
         t.source?.takeIf { it.isNotBlank() }?.let { Line(stringResource(R.string.txn_source), it) }
         Line(stringResource(R.string.txn_number), "#${t.id}")

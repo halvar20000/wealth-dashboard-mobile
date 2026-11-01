@@ -11,21 +11,22 @@ import java.util.Currency
 import java.util.Locale
 import fr.smarthomeworld.wealth.R
 
-/** Numbers as the phone's language writes them, in the money's own unit. */
+/** Numbers as the phone's language writes them, in the money's own unit.
+ *  Money always with its cents, so 3 300 € and 200,30 € read alike. */
 object Fmt {
 
-    fun money(value: Double?, currency: String?, decimals: Boolean = false): String {
+    fun money(value: Double?, currency: String?): String {
         if (value == null) return "—"
         val f = NumberFormat.getCurrencyInstance(Locale.getDefault())
         runCatching { f.currency = Currency.getInstance((currency ?: "EUR").uppercase()) }
-        f.maximumFractionDigits = if (decimals) 2 else 0
-        f.minimumFractionDigits = if (decimals) 2 else 0
+        f.maximumFractionDigits = 2
+        f.minimumFractionDigits = 2
         return f.format(value)
     }
 
     fun signedMoney(value: Double?, currency: String?): String {
         if (value == null) return "—"
-        val body = money(kotlin.math.abs(value), currency, decimals = kotlin.math.abs(value) < 1000)
+        val body = money(kotlin.math.abs(value), currency)
         return (if (value >= 0) "+" else "−") + body
     }
 

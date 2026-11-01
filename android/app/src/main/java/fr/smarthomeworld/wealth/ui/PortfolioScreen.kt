@@ -232,7 +232,7 @@ private fun HoldingCard(h: Holding, ret: Period?, base: String?) {
                     Text(
                         listOfNotNull(
                             h.symbol ?: h.isin,
-                            "${Fmt.quantity(h.quantity)} × ${Fmt.money(h.price, h.currency, decimals = true)}",
+                            "${Fmt.quantity(h.quantity)} × ${Fmt.money(h.price, h.currency)}",
                         ).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
