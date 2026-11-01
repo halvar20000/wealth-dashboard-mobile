@@ -120,6 +120,13 @@ fun CashflowScreen(
 
         item { Bars(flow.months, ccy) }
 
+        // Every row behind the page, each one open to look at and file.
+        item {
+            OutlinedButton(onClick = onTransactions, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.cashflow_all_rows))
+            }
+        }
+
         item {
             Text(stringResource(R.string.where_it_goes), style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold)

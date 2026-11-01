@@ -140,7 +140,33 @@ data class Txn(
     @SerialName("security_name") val securityName: String? = null,
     val quantity: Double? = null,
     val price: Double? = null,
+    /** Comma-separated words, as the dashboard stores them. */
+    val tags: String? = null,
+    /** Where the row came from: an import, a bank sync, typed by hand. */
+    val source: String? = null,
+    val fee: Double? = null,
+    val tax: Double? = null,
 )
+
+/** What `update_transaction` answers: the row's own fields, without the
+ *  account's name — which is why it is merged into the row on screen
+ *  rather than replacing it. */
+@Serializable
+data class TxnPatch(
+    val id: Int = 0,
+    @SerialName("txn_date") val date: String? = null,
+    val description: String? = null,
+    val counterparty: String? = null,
+    val amount: Double? = null,
+    val currency: String? = null,
+    val kind: String? = null,
+    val category: String? = null,
+) {
+    fun onto(t: Txn) = t.copy(
+        date = date ?: t.date, description = description, counterparty = counterparty,
+        amount = amount ?: t.amount, currency = currency ?: t.currency,
+        kind = kind ?: t.kind, category = category)
+}
 
 /** What an import answered: the reader that read it, and what it did. */
 @Serializable
@@ -211,9 +237,19 @@ data class Category(
     val colour: String? = null,
     /** How many rows carry it — the sheet puts the used ones first. */
     val transactions: Int = 0,
+    /** How many rules file into it, so deleting can say what goes. */
+    val rules: Int = 0,
+    /** False for the four the dashboard reasons about by name. */
+    val deletable: Boolean = true,
+    /** True where the group is wired in (income, investment, transfer). */
+    @SerialName("group_locked") val groupLocked: Boolean = false,
 ) {
     val spending: Boolean get() = group == "spending"
 }
+
+/** What `delete_category` answers: how many rows moved to "other". */
+@Serializable
+data class DeletedCategory(val slug: String = "", val moved: Int = 0)
 
 /** One of the household, for "whose spending is this". */
 @Serializable

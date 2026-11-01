@@ -15,6 +15,7 @@ import fr.smarthomeworld.wealth.data.Holding
 import fr.smarthomeworld.wealth.data.Returns
 import fr.smarthomeworld.wealth.data.Person
 import fr.smarthomeworld.wealth.data.TransactionPage
+import fr.smarthomeworld.wealth.data.Txn
 import fr.smarthomeworld.wealth.data.Verdict
 import fr.smarthomeworld.wealth.data.Waiting1
 import fr.smarthomeworld.wealth.widget.refreshWidgets
@@ -67,6 +68,23 @@ data class TriageState(
     val error: String? = null,
 )
 
+/** The category list in Settings, and the choices on a row's page. */
+data class CategoriesState(
+    val loading: Boolean = false,
+    val list: List<Category> = emptyList(),
+    /** Set while an edit is on its way, so the sheet can wait for it. */
+    val saving: Boolean = false,
+    val error: String? = null,
+    /** The dashboard answered 404 to an edit: older than 0.79.2. */
+    val tooOld: Boolean = false,
+)
+
+/** The page of one row: what it is, and what happened to the last edit. */
+data class TxnEditState(
+    val saving: Boolean = false,
+    val error: String? = null,
+)
+
 /** The portfolio page: what is held, where it sits, how it has done,
  *  and the line of the securities over the chosen window. */
 data class PortfolioState(
@@ -104,6 +122,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _triage = MutableStateFlow(TriageState())
     val triage: StateFlow<TriageState> = _triage.asStateFlow()
+
+    private val _categories = MutableStateFlow(CategoriesState())
+    val categories: StateFlow<CategoriesState> = _categories.asStateFlow()
+
+    private val _edit = MutableStateFlow(TxnEditState())
+    val edit: StateFlow<TxnEditState> = _edit.asStateFlow()
 
     val lockEnabled: Boolean get() = store.lockEnabled
     val watchEnabled: Boolean get() = store.watch
@@ -410,4 +434,101 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 }
         }
     }
+
+    // ── The categories ───────────────────────────────────────────
+
+    fun loadCategories() {
+        if (!store.paired) return
+        _categories.value = _categories.value.copy(loading = true, error = null)
+        viewModelScope.launch {
+            runCatching { repo.categories() }
+                .onSuccess { _categories.value = _categories.value.copy(loading = false, list = it) }
+                .onFailure { e ->
+                    _categories.value = _categories.value.copy(loading = false, error = failure(e))
+                }
+        }
+    }
+
+    /** Make one (slug null) or change one. `onDone` closes the sheet. */
+    fun saveCategory(slug: String?, label: String, colour: String, group: String?, onDone: () -> Unit) {
+        _categories.value = _categories.value.copy(saving = true, error = null)
+        viewModelScope.launch {
+            runCatching {
+                if (slug == null) repo.addCategory(label.trim(), colour, group ?: "spending")
+                else repo.updateCategory(slug, label.trim(), colour, group)
+            }.onSuccess {
+                _categories.value = _categories.value.copy(saving = false)
+                onDone()
+                loadCategories()
+            }.onFailure { e -> categoryRefused(e) }
+        }
+    }
+
+    fun deleteCategory(slug: String, onDone: (Int) -> Unit) {
+        _categories.value = _categories.value.copy(saving = true, error = null)
+        viewModelScope.launch {
+            runCatching { repo.deleteCategory(slug) }
+                .onSuccess { moved ->
+                    _categories.value = _categories.value.copy(saving = false)
+                    onDone(moved)
+                    loadCategories()
+                }
+                .onFailure { e -> categoryRefused(e) }
+        }
+    }
+
+    fun clearCategoryError() { _categories.value = _categories.value.copy(error = null) }
+
+    private fun categoryRefused(e: Throwable) {
+        val old = (e as? Api.Failure)?.status == 404
+        _categories.value = _categories.value.copy(
+            saving = false, tooOld = old,
+            error = if (old) say(R.string.categories_too_old) else failure(e))
+    }
+
+    // ── One row ──────────────────────────────────────────────────
+
+    /** File one row under a category, now. The list on screen shows the
+     *  new category at once; a refusal puts the old one back. */
+    fun categoriseRow(txn: Txn, category: String, remember: Boolean, pattern: String?) {
+        _edit.value = TxnEditState(saving = true)
+        replaceRow(txn.copy(category = category))
+        viewModelScope.launch {
+            runCatching { repo.setCategory(txn.id, category, remember, pattern) }
+                .onSuccess {
+                    _edit.value = TxnEditState()
+                    // A rule may have filed other rows on screen too.
+                    if (remember) loadTransactions(lastTxns.first, lastTxns.second, lastCategory)
+                }
+                .onFailure { e ->
+                    replaceRow(txn)
+                    _edit.value = TxnEditState(error = failure(e))
+                }
+        }
+    }
+
+    /** Correct the fields given on one row. */
+    fun updateRow(txn: Txn, fields: Map<String, Any?>, onDone: () -> Unit) {
+        if (fields.isEmpty()) { onDone(); return }
+        _edit.value = TxnEditState(saving = true)
+        viewModelScope.launch {
+            runCatching { repo.updateTransaction(txn.id, fields) }
+                .onSuccess { patch ->
+                    replaceRow(patch.onto(txn))
+                    _edit.value = TxnEditState()
+                    onDone()
+                }
+                .onFailure { e -> _edit.value = TxnEditState(error = failure(e)) }
+        }
+    }
+
+    fun clearEditError() { _edit.value = TxnEditState() }
+
+    private fun replaceRow(txn: Txn) {
+        val page = _txns.value ?: return
+        _txns.value = page.copy(transactions = page.transactions.map { if (it.id == txn.id) txn else it })
+    }
+
+    private fun failure(e: Throwable): String =
+        (e as? Api.Failure)?.message ?: e.message ?: say(R.string.error_unreachable)
 }

@@ -158,6 +158,25 @@ class Repo(private val store: Store) {
 
     fun waiting(): Int = store.pending().size
 
+    // ── One row, and the categories ──────────────────────────────
+
+    suspend fun categories(): List<Category> = withContext(Dispatchers.IO) { store.api().categories() }
+
+    suspend fun setCategory(txnId: Int, category: String, remember: Boolean, pattern: String?) =
+        withContext(Dispatchers.IO) { store.api().setCategory(txnId, category, remember, pattern) }
+
+    suspend fun updateTransaction(txnId: Int, fields: Map<String, Any?>): TxnPatch =
+        withContext(Dispatchers.IO) { store.api().updateTransaction(txnId, fields) }
+
+    suspend fun addCategory(label: String, colour: String, group: String): Category =
+        withContext(Dispatchers.IO) { store.api().addCategory(label, colour, group) }
+
+    suspend fun updateCategory(slug: String, label: String, colour: String, group: String?): Category =
+        withContext(Dispatchers.IO) { store.api().updateCategory(slug, label, colour, group) }
+
+    suspend fun deleteCategory(slug: String): Int =
+        withContext(Dispatchers.IO) { store.api().deleteCategory(slug) }
+
     /** Drop the last verdict, if it has not gone out yet. Returns how
      *  many are waiting afterwards. */
     fun undoLast(): Int {

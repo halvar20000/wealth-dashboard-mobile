@@ -364,12 +364,42 @@
         }
       }
     },
+    "All accounts" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Konten"
+          }
+        }
+      }
+    },
+    "All transactions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Buchungen"
+          }
+        }
+      }
+    },
     "Allocation" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aufteilung"
+          }
+        }
+      }
+    },
+    "Amount" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betrag"
           }
         }
       }
@@ -404,6 +434,16 @@
         }
       }
     },
+    "Bank accounts" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girokonten"
+          }
+        }
+      }
+    },
     "Bank connections" : {
       "localizations" : {
         "de" : {
@@ -420,6 +460,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anleihen"
+          }
+        }
+      }
+    },
+    "Built in: it can be renamed and recoloured, not deleted." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fest eingebaut: umbenennen und umfärben ja, löschen nein."
+          }
+        }
+      }
+    },
+    "Buy" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kauf"
           }
         }
       }
@@ -474,12 +534,32 @@
         }
       }
     },
+    "Categories" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kategorien"
+          }
+        }
+      }
+    },
     "Category" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kategorie"
+          }
+        }
+      }
+    },
+    "Change" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ändern"
           }
         }
       }
@@ -494,12 +574,72 @@
         }
       }
     },
+    "Colour" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farbe"
+          }
+        }
+      }
+    },
     "Commodities" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rohstoffe"
+          }
+        }
+      }
+    },
+    "Counterparty" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gegenpartei"
+          }
+        }
+      }
+    },
+    "Counts as" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zählt als"
+          }
+        }
+      }
+    },
+    "Create and edit the categories." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kategorien anlegen und bearbeiten."
+          }
+        }
+      }
+    },
+    "Create, rename and recolour the categories every row is filed under — the same list as on the dashboard." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kategorien anlegen, umbenennen und umfärben — dieselbe Liste wie im Dashboard."
+          }
+        }
+      }
+    },
+    "Credit cards" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kreditkarten"
           }
         }
       }
@@ -524,6 +664,16 @@
         }
       }
     },
+    "Date" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum"
+          }
+        }
+      }
+    },
     "Debt" : {
       "localizations" : {
         "de" : {
@@ -534,12 +684,102 @@
         }
       }
     },
+    "Delete" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen"
+          }
+        }
+      }
+    },
+    "Delete “%@”?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ löschen?"
+          }
+        }
+      }
+    },
+    "Deposit" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einzahlung"
+          }
+        }
+      }
+    },
+    "Depots" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Depots"
+          }
+        }
+      }
+    },
+    "Description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreibung"
+          }
+        }
+      }
+    },
+    "Dividend" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dividende"
+          }
+        }
+      }
+    },
     "Done" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fertig"
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit category" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kategorie bearbeiten"
+          }
+        }
+      }
+    },
+    "Editing categories needs dashboard 0.79.2 or newer." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kategorien bearbeiten braucht Dashboard 0.79.2 oder neuer."
           }
         }
       }
@@ -600,6 +840,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Face ID, Touch ID oder der Code, bevor die Zahlen erscheinen — die Sperre des Telefons selbst, nichts Eigenes der App."
+          }
+        }
+      }
+    },
+    "Fee" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebühr"
           }
         }
       }
@@ -694,12 +944,52 @@
         }
       }
     },
+    "Income" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einnahmen"
+          }
+        }
+      }
+    },
+    "Interest" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zinsen"
+          }
+        }
+      }
+    },
     "Invested" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Angelegt"
+          }
+        }
+      }
+    },
+    "Its %lld transactions move to “Other”, and its %lld rules are removed with it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihre %1$lld Buchungen wandern nach „Sonstiges“, ihre %2$lld Regeln werden mit entfernt."
+          }
+        }
+      }
+    },
+    "Kind" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Art"
           }
         }
       }
@@ -720,6 +1010,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Übrig in einem durchschnittlichen Monat"
+          }
+        }
+      }
+    },
+    "Loans" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kredite"
           }
         }
       }
@@ -754,6 +1054,16 @@
         }
       }
     },
+    "Name" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        }
+      }
+    },
     "Needs a newer dashboard" : {
       "localizations" : {
         "de" : {
@@ -764,12 +1074,32 @@
         }
       }
     },
+    "Neither (moving own money)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weder noch (eigenes Geld bewegen)"
+          }
+        }
+      }
+    },
     "Net worth" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nettovermögen"
+          }
+        }
+      }
+    },
+    "New category" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Kategorie"
           }
         }
       }
@@ -840,6 +1170,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Noch keine Aufteilung — die Positionen sind nicht klassifiziert."
+          }
+        }
+      }
+    },
+    "No category" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Kategorie"
           }
         }
       }
@@ -944,6 +1284,16 @@
         }
       }
     },
+    "Number" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nummer"
+          }
+        }
+      }
+    },
     "Open the app once to see the figure." : {
       "localizations" : {
         "de" : {
@@ -994,6 +1344,16 @@
         }
       }
     },
+    "P2P lending" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P2P-Kredite"
+          }
+        }
+      }
+    },
     "Pair this device" : {
       "localizations" : {
         "de" : {
@@ -1024,6 +1384,16 @@
         }
       }
     },
+    "Pension" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altersvorsorge"
+          }
+        }
+      }
+    },
     "Performance" : {
       "localizations" : {
         "de" : {
@@ -1040,6 +1410,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Portfolio"
+          }
+        }
+      }
+    },
+    "Price" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurs"
           }
         }
       }
@@ -1064,12 +1444,32 @@
         }
       }
     },
+    "Property" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immobilien"
+          }
+        }
+      }
+    },
     "Pull to load them from the dashboard." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zieh nach unten, um sie vom Dashboard zu laden."
+          }
+        }
+      }
+    },
+    "Quantity" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stück"
           }
         }
       }
@@ -1154,6 +1554,26 @@
         }
       }
     },
+    "Save" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichern"
+          }
+        }
+      }
+    },
+    "Savings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparkonten"
+          }
+        }
+      }
+    },
     "Search" : {
       "localizations" : {
         "de" : {
@@ -1174,6 +1594,16 @@
         }
       }
     },
+    "Search categories" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kategorien suchen"
+          }
+        }
+      }
+    },
     "Search everything" : {
       "localizations" : {
         "de" : {
@@ -1190,6 +1620,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wertpapiere"
+          }
+        }
+      }
+    },
+    "Security" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wertpapier"
+          }
+        }
+      }
+    },
+    "Sell" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verkauf"
           }
         }
       }
@@ -1254,6 +1704,26 @@
         }
       }
     },
+    "Source" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelle"
+          }
+        }
+      }
+    },
+    "Spending" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgaben"
+          }
+        }
+      }
+    },
     "Start" : {
       "localizations" : {
         "de" : {
@@ -1270,6 +1740,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nach rechts wischen: %@"
+          }
+        }
+      }
+    },
+    "Tags" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlagwörter"
           }
         }
       }
@@ -1344,6 +1824,16 @@
         }
       }
     },
+    "Tax" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steuer"
+          }
+        }
+      }
+    },
     "That address is not a URL." : {
       "localizations" : {
         "de" : {
@@ -1360,6 +1850,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Das ist alles, was die App geladen hat — lade den Rest."
+          }
+        }
+      }
+    },
+    "That is not an amount." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ist kein Betrag."
           }
         }
       }
@@ -1420,6 +1920,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Das Dashboard hat unter dieser Adresse nicht geantwortet."
+          }
+        }
+      }
+    },
+    "The dashboard fixes what this one counts as." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was diese Kategorie zählt, legt das Dashboard fest."
           }
         }
       }
@@ -1554,12 +2064,42 @@
         }
       }
     },
+    "This row only — nothing is remembered." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur diese Buchung — es wird nichts gemerkt."
+          }
+        }
+      }
+    },
     "This row only." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nur diese Buchung."
+          }
+        }
+      }
+    },
+    "Transaction" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buchung"
+          }
+        }
+      }
+    },
+    "Transfer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umbuchung"
           }
         }
       }
@@ -1793,6 +2333,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zeitraum"
+          }
+        }
+      }
+    },
+    "Withdrawal" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auszahlung"
           }
         }
       }

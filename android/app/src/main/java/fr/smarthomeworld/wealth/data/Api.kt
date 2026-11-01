@@ -7,7 +7,10 @@ import java.util.Locale
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -94,7 +97,7 @@ class Api(
      *  merchant with an ampersand in its name is not a query-string
      *  problem. */
     private fun post(path: String, args: Map<String, String>): String {
-        val body = buildString {
+        val text = buildString {
             append('{')
             args.entries.forEachIndexed { i, (k, v) ->
                 if (i > 0) append(',')
@@ -104,7 +107,28 @@ class Api(
                 else append(json.encodeToString(String.serializer(), v))
             }
             append('}')
-        }.toRequestBody("application/json".toMediaType())
+        }
+        return postBody(path, text)
+    }
+
+    /** A tool called with typed arguments: numbers stay numbers, text
+     *  stays text, null is sent as null. What an edit form wants, where
+     *  "12.50" must arrive as an amount and "2024" as a description. */
+    private fun postTyped(path: String, args: Map<String, Any?>): String {
+        val obj = JsonObject(args.mapValues { (_, v) ->
+            when (v) {
+                null -> JsonNull
+                is Number -> JsonPrimitive(v)
+                is Boolean -> JsonPrimitive(v)
+                is JsonElement -> v
+                else -> JsonPrimitive(v.toString())
+            }
+        })
+        return postBody(path, obj.toString())
+    }
+
+    private fun postBody(path: String, payload: String): String {
+        val body = payload.toRequestBody("application/json".toMediaType())
         val req = Request.Builder().url("$baseUrl$path")
             .header("Authorization", "Bearer ${token.orEmpty()}")
             .header("Accept", "application/json")
@@ -303,4 +327,50 @@ class Api(
         return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
     }
 
+    // ── Editing a row, and the categories themselves ─────────────
+
+    /** File one row, now — the detail page's choice, not the triage's
+     *  queue. `remember` off means this row only. */
+    fun setCategory(txnId: Int, category: String, remember: Boolean, pattern: String?) {
+        val args = buildMap<String, Any?> {
+            put("txn_id", txnId)
+            put("category", category)
+            put("remember", remember)
+            pattern?.trim()?.takeIf { it.isNotEmpty() }?.let { put("pattern", it) }
+        }
+        postTyped("/api/v1/tools/set_category", args)
+    }
+
+    /** Correct the fields given on one row; answers with the row as it
+     *  is now. */
+    fun updateTransaction(txnId: Int, fields: Map<String, Any?>): TxnPatch {
+        val text = postTyped("/api/v1/tools/update_transaction", fields + ("txn_id" to txnId))
+        val reply = json.decodeFromString(ToolReply.serializer(TxnPatch.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
+    }
+
+    /** A new category (dashboard ≥ 0.79.2). */
+    fun addCategory(label: String, colour: String, group: String): Category {
+        val text = postTyped("/api/v1/tools/add_category",
+            mapOf("label" to label, "colour" to colour, "group" to group))
+        val reply = json.decodeFromString(ToolReply.serializer(Category.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
+    }
+
+    /** Rename, recolour or regroup one; the slug stays (dashboard ≥ 0.79.2). */
+    fun updateCategory(slug: String, label: String, colour: String, group: String?): Category {
+        val text = postTyped("/api/v1/tools/update_category", buildMap {
+            put("slug", slug); put("label", label); put("colour", colour)
+            group?.let { put("group", it) }
+        })
+        val reply = json.decodeFromString(ToolReply.serializer(Category.serializer()), text)
+        return reply.result ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
+    }
+
+    /** Remove one; its rows move to "other". Answers how many moved. */
+    fun deleteCategory(slug: String): Int {
+        val text = postTyped("/api/v1/tools/delete_category", mapOf("slug" to slug))
+        val reply = json.decodeFromString(ToolReply.serializer(DeletedCategory.serializer()), text)
+        return reply.result?.moved ?: throw Failure(200, reply.error ?: context.getString(R.string.error_sent_nothing))
+    }
 }

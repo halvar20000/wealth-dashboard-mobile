@@ -231,14 +231,68 @@ struct PortfolioView: View {
 
     // MARK: The accounts
 
+    /// The accounts by kind, each kind with its sum — the depots' total is
+    /// the figure people look for here — and all of them together on top.
     @ViewBuilder private var accountsSection: some View {
-        Section {
-            if model.accounts.isEmpty {
-                Text("No accounts yet.").foregroundStyle(.secondary)
+        if model.accounts.isEmpty {
+            Section { Text("No accounts yet.").foregroundStyle(.secondary) }
+        } else {
+            Section {
+                HStack {
+                    Text("All accounts").fontWeight(.semibold)
+                    Spacer()
+                    Text(Fmt.money(Self.sum(model.accounts), model.currency)).fontWeight(.bold)
+                }
             }
-            ForEach(model.accounts) { a in
-                NavigationLink(value: a) { AccountRow(account: a, currency: model.currency) }
+            ForEach(Self.groups(model.accounts), id: \.type) { g in
+                Section {
+                    ForEach(g.accounts) { a in
+                        NavigationLink(value: a) { AccountRow(account: a, currency: model.currency) }
+                    }
+                } header: {
+                    HStack {
+                        Text(Self.typeLabel(g.type))
+                        Spacer()
+                        let sum = Self.sum(g.accounts)
+                        Text(Fmt.money(sum, model.currency))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(sum < 0 ? Color.loss : Color.primary)
+                    }
+                }
             }
+        }
+    }
+
+    /// The dashboard's account types in its own order; an unknown type
+    /// joins "other".
+    static let typeOrder = ["bank", "savings", "card", "broker", "pension", "p2p", "property", "loan", "other"]
+
+    struct AccountGroup { let type: String; let accounts: [Account] }
+
+    static func groups(_ accounts: [Account]) -> [AccountGroup] {
+        let byType = Dictionary(grouping: accounts) { a in
+            typeOrder.contains(a.type ?? "") ? a.type! : "other"
+        }
+        return typeOrder.compactMap { t in byType[t].map { AccountGroup(type: t, accounts: $0) } }
+    }
+
+    /// In the base currency; an account with no rate counts for nothing
+    /// rather than for its own currency's number.
+    static func sum(_ accounts: [Account]) -> Double {
+        accounts.reduce(0) { $0 + ($1.balanceBase ?? 0) }
+    }
+
+    static func typeLabel(_ type: String) -> String {
+        switch type {
+        case "bank": String(localized: "Bank accounts")
+        case "savings": String(localized: "Savings")
+        case "card": String(localized: "Credit cards")
+        case "broker": String(localized: "Depots")
+        case "loan": String(localized: "Loans")
+        case "pension": String(localized: "Pension")
+        case "p2p": String(localized: "P2P lending")
+        case "property": String(localized: "Property")
+        default: String(localized: "Other")
         }
     }
 

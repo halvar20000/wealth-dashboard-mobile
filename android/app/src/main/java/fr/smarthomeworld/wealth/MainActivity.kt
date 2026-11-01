@@ -3,16 +3,19 @@ package fr.smarthomeworld.wealth
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
@@ -74,7 +77,7 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-private enum class Tab { Overview, Portfolio, Triage, Cashflow, Transactions, Settings }
+private enum class Tab { Overview, Portfolio, Triage, Cashflow, Transactions, Settings, Categories }
 
 /** What the shortcut sends; an explicit component, so no filter is
  *  needed for it. */
@@ -88,6 +91,8 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
     val triage by vm.triage.collectAsStateWithLifecycle()
     val portfolio by vm.portfolio.collectAsStateWithLifecycle()
     val cashflow by vm.cashflow.collectAsStateWithLifecycle()
+    val categories by vm.categories.collectAsStateWithLifecycle()
+    val edit by vm.edit.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(start) }
     LaunchedEffect(start) { if (start == Tab.Triage) vm.loadTriage(owning = false) }
     var account by remember { mutableStateOf<Account?>(null) }
@@ -104,6 +109,11 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
         LockScreen { unlock { vm.unlock() } }
         return
     }
+    // The category list is a page under Settings; back goes there.
+    BackHandler(enabled = tab == Tab.Categories) { tab = Tab.Settings }
+    // A row's page wants the labels and the choices; ask once, when the
+    // first page is opened, and keep them.
+    val needCategories = { if (categories.list.isEmpty() && !categories.loading) vm.loadCategories() }
 
     Scaffold(
         topBar = {
@@ -116,6 +126,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                         Tab.Cashflow -> stringResource(R.string.tab_cashflow)
                         Tab.Transactions -> stringResource(R.string.tab_transactions)
                         Tab.Settings -> stringResource(R.string.tab_settings)
+                        Tab.Categories -> stringResource(R.string.categories_title)
                     }
                     Text(account?.name ?: heading)
                 },
@@ -169,7 +180,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     onClick = { tab = Tab.Cashflow; account = null; vm.loadCashflow() },
                     icon = { Icon(Icons.Default.SwapVert, null) }, label = { Text(stringResource(R.string.tab_cashflow)) })
                 NavigationBarItem(
-                    selected = tab == Tab.Settings,
+                    selected = tab == Tab.Settings || tab == Tab.Categories,
                     onClick = { tab = Tab.Settings; account = null },
                     icon = { Icon(Icons.Default.Settings, null) }, label = { Text(stringResource(R.string.tab_settings)) })
             }
@@ -178,13 +189,30 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
         Box(Modifier.padding(pad)) {
             val snap = state.snapshot
             when {
-                account != null -> TransactionsScreen(txns, account!!.name) { q ->
-                    vm.loadTransactions(account!!.id, q)
-                }
+                account != null -> TransactionsScreen(
+                    txns, account!!.name,
+                    onSearch = { q -> vm.loadTransactions(account!!.id, q) },
+                    categories = categories.list, edit = edit,
+                    onOpen = { vm.clearEditError(); needCategories() },
+                    onCategorise = { t, slug, remember, pattern -> vm.categoriseRow(t, slug, remember, pattern) },
+                    onUpdate = { t, fields, done -> vm.updateRow(t, fields, done) },
+                )
                 tab == Tab.Transactions -> TransactionsScreen(
                     txns,
                     categoryTitle.ifBlank { stringResource(R.string.search_everything) },
-                ) { q -> vm.loadTransactions(null, q, categoryFilter) }
+                    onSearch = { q -> vm.loadTransactions(null, q, categoryFilter) },
+                    categories = categories.list, edit = edit,
+                    onOpen = { vm.clearEditError(); needCategories() },
+                    onCategorise = { t, slug, remember, pattern -> vm.categoriseRow(t, slug, remember, pattern) },
+                    onUpdate = { t, fields, done -> vm.updateRow(t, fields, done) },
+                )
+                tab == Tab.Categories -> CategoriesScreen(
+                    state = categories,
+                    onSave = { slug, label, colour, group, done -> vm.saveCategory(slug, label, colour, group, done) },
+                    onDelete = { slug, done -> vm.deleteCategory(slug, done) },
+                    onDismissError = { vm.clearCategoryError() },
+                    onRefresh = { vm.loadCategories() },
+                )
                 tab == Tab.Cashflow -> CashflowScreen(
                     state = cashflow,
                     baseCurrency = snap?.baseCurrency ?: "EUR",
@@ -206,7 +234,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     state = portfolio,
                     accounts = snap?.accounts.orEmpty(),
                     onPeriod = { vm.setPeriod(it) },
-                    onAccount = { account = it; vm.loadTransactions(it.id) },
+                    onAccount = { account = it; vm.loadTransactions(it.id); needCategories() },
                     onRefresh = { vm.loadPortfolio() },
                 )
                 tab == Tab.Triage -> Column(Modifier.fillMaxSize()) {
@@ -244,6 +272,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     onLock = { vm.setLock(it) },
                     onWatch = { vm.setWatch(it) },
                     onForget = { vm.forget() },
+                    onCategories = { tab = Tab.Categories; vm.loadCategories() },
                 )
                 snap == null && state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator()
@@ -311,6 +340,7 @@ private fun SettingsScreen(
     onLock: (Boolean) -> Unit,
     onWatch: (Boolean) -> Unit,
     onForget: () -> Unit,
+    onCategories: () -> Unit,
 ) {
     var locked by remember { mutableStateOf(lock) }
     var watching by remember { mutableStateOf(watch) }
@@ -348,6 +378,17 @@ private fun SettingsScreen(
                     ask.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             })
+        }
+        // The dashboard's category list, to make and change them here.
+        Row(Modifier.fillMaxWidth().clickable(onClick = onCategories).padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.setting_categories), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.setting_categories_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
         }
         OutlinedButton(onClick = onForget) { Text(stringResource(R.string.forget)) }
         Text(

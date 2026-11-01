@@ -215,8 +215,58 @@ final class AppModel {
         try await store.api().cashflow(months: months)
     }
 
-    func transactions(accountId: Int? = nil, query: String? = nil) async throws -> TransactionPage {
-        try await store.api().transactions(accountId: accountId, query: query)
+    func transactions(accountId: Int? = nil, query: String? = nil, category: String? = nil) async throws -> TransactionPage {
+        try await store.api().transactions(accountId: accountId, query: query, category: category)
+    }
+
+    // MARK: One row, and the categories
+
+    /// The dashboard's categories, kept for labels and the choices on a
+    /// row's page; asked again whenever the list itself is opened.
+    private(set) var categories: [Category] = []
+
+    @discardableResult
+    func loadCategories() async throws -> [Category] {
+        let list = try await store.api().categories()
+        categories = list
+        return list
+    }
+
+    /// Labels for the rows, asked once if nothing has asked yet.
+    func ensureCategories() async {
+        if categories.isEmpty { _ = try? await loadCategories() }
+    }
+
+    func label(of slug: String?) -> String? {
+        guard let slug, !slug.isEmpty else { return nil }
+        return categories.first { $0.slug == slug }?.title ?? slug
+    }
+
+    /// Editing categories arrived with dashboard 0.79.2.
+    var canEditCategories: Bool { supports("0.79.2") }
+
+    func setCategory(_ txn: Txn, to slug: String, remember: Bool, pattern: String?) async throws {
+        try await store.api().setCategory(txnId: txn.id, category: slug, remember: remember, pattern: pattern)
+    }
+
+    func update(_ txn: Txn, fields: [String: Any]) async throws -> Txn {
+        try await store.api().updateTransaction(txnId: txn.id, fields: fields).onto(txn)
+    }
+
+    func saveCategory(slug: String?, label: String, colour: String, group: String?) async throws {
+        let api = store.api()
+        if let slug {
+            _ = try await api.updateCategory(slug: slug, label: label, colour: colour, group: group)
+        } else {
+            _ = try await api.addCategory(label: label, colour: colour, group: group ?? "spending")
+        }
+        _ = try? await loadCategories()
+    }
+
+    func deleteCategory(_ slug: String) async throws -> Int {
+        let moved = try await store.api().deleteCategory(slug: slug)
+        _ = try? await loadCategories()
+        return moved
     }
 
     // MARK: The portfolio
@@ -364,6 +414,7 @@ final class AppModel {
 
     func forget() {
         store.forget()
+        categories = []
         Round.schedule(false)
         WidgetCenter.shared.reloadAllTimelines()
         waiting = 0
