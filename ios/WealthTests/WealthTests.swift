@@ -50,8 +50,8 @@ final class WealthTests: XCTestCase {
            "transactions": 12, "rules": 2, "deletable": false, "group_locked": true, "builtin": true},
           {"slug": "tiere", "label": "Tiere", "group": "spending"}]}
         """
-        let list = try Api.decoder.decode(ToolReply<[Category]>.self, from: Data(json.utf8)).result ?? []
-        XCTAssertEqual(list.map(\.slug), ["income", "tiere"])
+        let list = try Api.decoder.decode(ToolReply<[Wealth.Category]>.self, from: Data(json.utf8)).result ?? []
+        XCTAssertEqual(list.map(\Wealth.Category.slug), ["income", "tiere"])
         XCTAssertEqual(list[0].groupLocked, true)
         XCTAssertEqual(list[0].deletable, false)
         XCTAssertEqual(list[0].rules, 2)
