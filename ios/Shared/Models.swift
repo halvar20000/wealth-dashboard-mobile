@@ -73,6 +73,18 @@ struct Period: Codable {
     var mwr: Double?
     var pnl: Double?
     var days: Int?
+    /// One holding over the window the portfolio asked for, from
+    /// dashboard 0.80.0 on; nil over the whole time or from an older one.
+    var period: WindowReturn?
+}
+
+/// A return over one chosen window: the securities, or one holding.
+struct WindowReturn: Codable {
+    var since: String?
+    var twr: Double?
+    var twrAnnual: Double?
+    var mwr: Double?
+    var pnl: Double?
 }
 
 struct Account: Codable, Identifiable, Hashable {
@@ -456,9 +468,11 @@ struct Returns: Codable {
     var ytd: Period?
     var year: Period?
     var holdings: [String: Period]?
+    /// The securities over the window asked for (dashboard 0.80.0+).
+    var period: WindowReturn?
 
     private enum CodingKeys: String, CodingKey {
-        case all, ytd, year = "1y", holdings
+        case all, ytd, year = "1y", holdings, period
     }
 }
 

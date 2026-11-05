@@ -270,4 +270,7 @@
     <string name="cashflow_all_rows">All transactions</string>
     <string name="setting_categories">Categories</string>
     <string name="setting_categories_note">Create and edit the categories.</string>
+    <string name="zoom_reset">Show all</string>
+    <string name="gain_in">Gain · %1$s</string>
+    <string name="window_needs_server">The figures per position for this window need dashboard 0.80.0.</string>
 </resources>

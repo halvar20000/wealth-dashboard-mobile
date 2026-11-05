@@ -162,8 +162,10 @@ struct Api {
     }
 
     /// The return of the whole portfolio and of each holding.
-    func returns() async throws -> Returns {
-        try await tool("performance", as: Returns.self)
+    /// With a window, each holding also over it — dashboard 0.80.0 on;
+    /// an older one refuses the argument.
+    func returns(period: String? = nil) async throws -> Returns {
+        try await tool("performance", period.map { ["period": $0] } ?? [:], as: Returns.self)
     }
 
     // MARK: The triage

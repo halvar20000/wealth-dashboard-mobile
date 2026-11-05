@@ -23,6 +23,11 @@ let slices: [Color] = [0x4F86F7, 0x34D399, 0xF59E0B, 0xF87171,
 /// and a label above says when and how much. Sliding then walks through
 /// time; lifting the finger puts the chart back as it was. The press
 /// comes first so that a swipe over the chart still scrolls the list.
+///
+/// Two fingers zoom into time, and only time: spreading them shows fewer
+/// days across the width, around the place they started. The height
+/// follows the days in view, so a quiet week is not a flat line. A
+/// button in the corner puts the whole window back, and so does new data.
 struct LineChart: View {
     let values: [Double]
     /// One ISO date per value, for the label; without them the chart
@@ -32,8 +37,21 @@ struct LineChart: View {
 
     @State private var picked: Int?
     @State private var labelWidth: CGFloat = 0
+    /// The window in view, in fractional indices; nil is all of it.
+    @State private var window: ClosedRange<Double>?
+    /// The window as the pinch found it, while two fingers are down.
+    @State private var pinchStart: ClosedRange<Double>?
 
     private var scrubbable: Bool { values.count > 1 && dates.count == values.count }
+    private var last: Double { Double(max(values.count - 1, 1)) }
+    private var inView: ClosedRange<Double> { window ?? 0...last }
+    /// The first and last index drawn: every point in view, and the one
+    /// just outside each edge so the line runs off the side.
+    private var drawn: ClosedRange<Int> {
+        let lo = max(Int(inView.lowerBound.rounded(.down)), 0)
+        let hi = min(Int(inView.upperBound.rounded(.up)), values.count - 1)
+        return lo...max(hi, lo)
+    }
 
     var body: some View {
         let up = values.count < 2 || (values.last ?? 0) >= (values.first ?? 0)
@@ -42,18 +60,23 @@ struct LineChart: View {
             let size = geo.size
             if values.count > 1 {
                 let points = points(in: size)
+                let range = drawn
+                let firstX = points[range.lowerBound].x, lastX = points[range.upperBound].x
                 ZStack(alignment: .topLeading) {
-                    // The same line closed downwards, filled with a fading wash.
-                    Path { p in
-                        p.move(to: CGPoint(x: 0, y: size.height))
-                        points.forEach { p.addLine(to: $0) }
-                        p.addLine(to: CGPoint(x: size.width, y: size.height))
-                        p.closeSubpath()
+                    Group {
+                        // The same line closed downwards, filled with a fading wash.
+                        Path { p in
+                            p.move(to: CGPoint(x: firstX, y: size.height))
+                            range.forEach { p.addLine(to: points[$0]) }
+                            p.addLine(to: CGPoint(x: lastX, y: size.height))
+                            p.closeSubpath()
+                        }
+                        .fill(LinearGradient(colors: [colour.opacity(0.28), .clear],
+                                             startPoint: .top, endPoint: .bottom))
+                        Path { p in p.addLines(range.map { points[$0] }) }
+                            .stroke(colour, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                     }
-                    .fill(LinearGradient(colors: [colour.opacity(0.28), .clear],
-                                         startPoint: .top, endPoint: .bottom))
-                    Path { p in p.addLines(points) }
-                        .stroke(colour, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                    .clipShape(Rectangle())
                     if let i = picked, points.indices.contains(i) {
                         Rectangle().fill(colour.opacity(0.5))
                             .frame(width: 1, height: size.height)
@@ -61,10 +84,10 @@ struct LineChart: View {
                         Circle().fill(colour)
                             .frame(width: 10, height: 10)
                             .position(points[i])
-                    } else if let last = points.last {
+                    } else if range.upperBound == values.count - 1, let end = points.last {
                         Circle().fill(colour)
                             .frame(width: 8, height: 8)
-                            .position(last)
+                            .position(end)
                     }
                     Rectangle().fill(Color.secondary.opacity(0.18))
                         .frame(width: size.width, height: 1)
@@ -73,13 +96,54 @@ struct LineChart: View {
                         label(i)
                             .offset(x: min(max(points[i].x - labelWidth / 2, 0),
                                            max(size.width - labelWidth, 0)))
+                    } else if window != nil {
+                        zoomBar.frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 }
                 .contentShape(Rectangle())
                 .gesture(scrub(width: size.width), including: scrubbable ? .all : .subviews)
+                .simultaneousGesture(zoom)
             }
         }
+        .onChange(of: values) { window = nil; pinchStart = nil }
         .accessibilityHidden(true)
+    }
+
+    /// The days in view, and the way back to all of them.
+    private var zoomBar: some View {
+        HStack(spacing: 6) {
+            if scrubbable {
+                let a = dates[min(max(Int(inView.lowerBound.rounded()), 0), dates.count - 1)]
+                let b = dates[min(max(Int(inView.upperBound.rounded()), 0), dates.count - 1)]
+                Text(verbatim: "\(Fmt.day(a)) – \(Fmt.day(b))")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+            Button("Show all") { withAnimation(.snappy) { window = nil } }
+                .font(.caption2.weight(.semibold))
+                .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(.regularMaterial, in: Capsule())
+    }
+
+    /// Two fingers: the day under where they started stays put, and the
+    /// window narrows or widens around it.
+    private var zoom: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                guard values.count > 2 else { return }
+                picked = nil
+                let start = pinchStart ?? inView
+                if pinchStart == nil { pinchStart = start }
+                let w = start.upperBound - start.lowerBound
+                let narrowest = min(last, 3)
+                let newW = min(max(w / max(value.magnification, 0.01), narrowest), last)
+                let f = Double(min(max(value.startAnchor.x, 0), 1))
+                let held = start.lowerBound + f * w
+                let from = min(max(held - f * newW, 0), last - newW)
+                window = newW >= last - 0.001 ? nil : from...(from + newW)
+            }
+            .onEnded { _ in pinchStart = nil }
     }
 
     /// The label rides above the finger but stays inside the chart, so
@@ -108,6 +172,7 @@ struct LineChart: View {
                     // the drag's first event says where it is.
                     break
                 case .second(true, let drag?):
+                    guard pinchStart == nil else { break }
                     let i = index(at: drag.location.x, width: width)
                     if i != picked {
                         picked = i
@@ -122,18 +187,23 @@ struct LineChart: View {
 
     private func index(at x: CGFloat, width: CGFloat) -> Int {
         guard width > 0, values.count > 1 else { return 0 }
-        let i = Int((x / width * CGFloat(values.count - 1)).rounded())
-        return min(max(i, 0), values.count - 1)
+        let v = inView
+        let i = Int((v.lowerBound + Double(x / width) * (v.upperBound - v.lowerBound)).rounded())
+        return min(max(i, drawn.lowerBound), drawn.upperBound)
     }
 
     private func points(in size: CGSize) -> [CGPoint] {
-        let lo = values.min() ?? 0, hi = values.max() ?? 0
+        // The height follows the days in view.
+        let shown = values[drawn]
+        let lo = shown.min() ?? 0, hi = shown.max() ?? 0
         let span = hi > lo ? hi - lo : 1
-        let step = size.width / CGFloat(values.count - 1)
+        let v = inView
+        let width = max(v.upperBound - v.lowerBound, 0.001)
         // A little air above and below, so the line never touches the edge.
         let top = size.height * 0.08, usable = size.height * 0.84
-        return values.enumerated().map { i, v in
-            CGPoint(x: step * CGFloat(i), y: top + usable * (1 - CGFloat((v - lo) / span)))
+        return values.enumerated().map { i, value in
+            CGPoint(x: size.width * CGFloat((Double(i) - v.lowerBound) / width),
+                    y: top + usable * (1 - CGFloat((value - lo) / span)))
         }
     }
 }

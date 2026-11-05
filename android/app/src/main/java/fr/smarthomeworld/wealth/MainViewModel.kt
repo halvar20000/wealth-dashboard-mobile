@@ -11,6 +11,8 @@ import fr.smarthomeworld.wealth.data.Allocation
 import fr.smarthomeworld.wealth.data.Cashflow
 import fr.smarthomeworld.wealth.data.Category
 import fr.smarthomeworld.wealth.data.History
+import fr.smarthomeworld.wealth.data.HistoryPoint
+import fr.smarthomeworld.wealth.data.ChartWindow
 import fr.smarthomeworld.wealth.data.Holding
 import fr.smarthomeworld.wealth.data.Returns
 import fr.smarthomeworld.wealth.data.Person
@@ -100,6 +102,14 @@ data class PortfolioState(
     val error: String? = null,
 )
 
+/** The line under the overview's figure and the window it shows: one
+ *  of the eight return tiles, tapped. Its own, so the portfolio's
+ *  window does not move it. */
+data class OverviewLine(
+    val window: String = ChartWindow.DEFAULT,
+    val points: List<HistoryPoint> = emptyList(),
+)
+
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun say(id: Int, vararg args: Any): String =
@@ -116,6 +126,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _cashflow = MutableStateFlow(CashflowState())
     val cashflow: StateFlow<CashflowState> = _cashflow.asStateFlow()
+
+    private val _line = MutableStateFlow(OverviewLine())
+    val line: StateFlow<OverviewLine> = _line.asStateFlow()
 
     private val _portfolio = MutableStateFlow(PortfolioState())
     val portfolio: StateFlow<PortfolioState> = _portfolio.asStateFlow()
@@ -145,7 +158,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             person = store.person,
             personName = store.personName,
         )
-        if (store.paired) { refresh(); loadHistory() }
+        if (store.paired) { refresh(); loadLine() }
         // A round that was switched on survives a reboot and an update;
         // one that was switched off leaves nothing behind.
         Watcher.schedule(app, store.watch && store.paired)
@@ -204,6 +217,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         pairing = false, paired = true, locked = false, error = null,
                         serverName = it.server?.name)
                     refresh()
+                    loadLine()
                 }
                 .onFailure { e ->
                     _state.value = _state.value.copy(
@@ -216,6 +230,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun forget() {
         store.forget()
         _txns.value = null
+        _line.value = OverviewLine()
         _state.value = UiState()
     }
 
@@ -251,7 +266,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _portfolio.value = PortfolioState(period = _portfolio.value.period)
         _cashflow.value = CashflowState(months = _cashflow.value.months)
         refresh()
-        loadHistory()
+        _line.value = OverviewLine(window = _line.value.window)
+        loadLine()
         if (hadPortfolio) loadPortfolio()
         if (hadCashflow) loadCashflow()
         if (hadTriage) loadTriage(_triage.value.owning)
@@ -347,22 +363,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Only the chart's window changed — one call, not four. The same
-     *  call fills the line under the overview's figure at start-up. */
-    fun loadHistory(period: String = _portfolio.value.period) {
+    /** Only the window changed — the line and the returns over it, two
+     *  calls, not four: what is held and where it sits stay as they are. */
+    fun setPeriod(period: String) {
         if (!store.paired) return
         _portfolio.value = _portfolio.value.copy(loading = true, period = period, error = null)
         viewModelScope.launch {
-            runCatching { repo.history(period) }
-                .onSuccess { _portfolio.value = _portfolio.value.copy(loading = false, history = it) }
-                .onFailure { e ->
-                    _portfolio.value = _portfolio.value.copy(
-                        loading = false, error = e.message ?: say(R.string.error_history))
-                }
+            val history = runCatching { repo.history(period) }
+            val returns = runCatching { repo.returns(period) }
+            // A tap on another window while these were out wins.
+            if (_portfolio.value.period != period) return@launch
+            _portfolio.value = _portfolio.value.copy(
+                loading = false,
+                history = history.getOrDefault(History()),
+                returns = returns.getOrDefault(_portfolio.value.returns),
+                error = history.exceptionOrNull()?.let { it.message ?: say(R.string.error_history) })
         }
     }
 
-    fun setPeriod(period: String) = loadHistory(period)
+    /** The line under the overview's figure, over one of its windows. */
+    fun loadLine(window: String = _line.value.window) {
+        if (!store.paired) return
+        _line.value = _line.value.copy(window = window)
+        viewModelScope.launch {
+            runCatching { repo.history(window) }.onSuccess { h ->
+                if (_line.value.window == window) _line.value = OverviewLine(window, h.points)
+            }
+        }
+    }
 
     // ── The triage ───────────────────────────────────────────────
 

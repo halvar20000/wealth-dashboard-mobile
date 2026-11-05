@@ -1,6 +1,7 @@
 package fr.smarthomeworld.wealth.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,9 +42,12 @@ fun OverviewScreen(
     at: Long,
     stale: Boolean,
     error: String?,
-    /** The net worth over the last year, for the line under the figure.
-     *  Empty until it has been fetched — the page works without it. */
+    /** The net worth over the chosen window, for the line under the
+     *  figure. Empty until it has been fetched — the page works without it. */
     history: List<HistoryPoint> = emptyList(),
+    /** Which return tile the line follows; tapping another moves it. */
+    window: String = "1y",
+    onWindow: (String) -> Unit = {},
     /** Asset classes the user has unticked; the figure leaves them out. */
     excluded: Set<String> = emptySet(),
     onToggleClass: (String) -> Unit = {},
@@ -130,6 +134,7 @@ fun OverviewScreen(
         item {
             // Two rows of four rather than a queue that scrolls off the
             // screen: the whole point of these eight is comparing them.
+            // A tap draws the line above over that window.
             val windows = PERIODS.filter { snapshot.performance[it.first] != null }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 windows.chunked(4).forEach { row ->
@@ -139,7 +144,8 @@ fun OverviewScreen(
                     ) {
                         row.forEach { (key, label) ->
                             Box(Modifier.weight(1f)) {
-                                PerfTile(stringResource(label), snapshot.performance.getValue(key), ccy)
+                                PerfTile(stringResource(label), snapshot.performance.getValue(key), ccy,
+                                    selected = key == window, onClick = { onWindow(key) })
                             }
                         }
                         repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -244,14 +250,19 @@ private fun Section(title: String) {
 }
 
 @Composable
-private fun PerfTile(label: String, p: Period, currency: String) {
+private fun PerfTile(label: String, p: Period, currency: String,
+                     selected: Boolean = false, onClick: () -> Unit = {}) {
     val colour: Color = when {
         p.twr == null -> MaterialTheme.colorScheme.onSurfaceVariant
         p.twr > 0 -> Gain
         p.twr < 0 -> Loss
         else -> MaterialTheme.colorScheme.onSurface
     }
-    Card(Modifier.fillMaxWidth()) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+    ) {
         Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)

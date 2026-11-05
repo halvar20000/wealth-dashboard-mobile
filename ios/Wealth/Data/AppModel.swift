@@ -22,7 +22,10 @@ final class AppModel {
     private(set) var pairing = false
     /// Set while the cheap refresh runs, so its button can say so.
     private(set) var pricing = false
-    /// The net worth over the last year, for the line under the figure.
+    /// Which return tile the overview's line follows: one of the eight
+    /// windows, tapped. Its own, so the portfolio's window does not move it.
+    private(set) var lineWindow = TimeWindow.standard
+    /// The net worth over that window, for the line under the figure.
     /// Empty until it has been fetched — the overview works without it.
     private(set) var netWorthLine: [Double] = []
     /// The day of each value in `netWorthLine`, for the tooltip.
@@ -137,10 +140,21 @@ final class AppModel {
         }
         // The line is an extra: a dashboard that cannot draw it still
         // gives the figure, and a failure here keeps yesterday's line.
-        if let history = try? await store.api().history(period: "1y") {
-            netWorthLine = history.line
-            netWorthDates = history.lineDates
-        }
+        await loadLine()
+    }
+
+    /// Draw the overview's line over another window.
+    func showLine(_ key: String) async {
+        guard key != lineWindow else { return }
+        lineWindow = key
+        await loadLine()
+    }
+
+    private func loadLine() async {
+        let key = lineWindow
+        guard let history = try? await self.history(period: key), key == lineWindow else { return }
+        netWorthLine = history.line
+        netWorthDates = history.lineDates
     }
 
     /// Quotes and rates, no bank touched (contract rule 9), then a fresh
@@ -272,11 +286,23 @@ final class AppModel {
     // MARK: The portfolio
 
     func holdings() async throws -> Holdings { try await store.api().holdings() }
-    func history(period: String) async throws -> History { try await store.api().history(period: period) }
+    /// The line of one of the eight windows: the dashboard's history
+    /// that covers it, cut to the window.
+    func history(period: String) async throws -> History {
+        TimeWindow.trim(try await store.api().history(period: TimeWindow.serverPeriod(period)), to: period)
+    }
     /// The ring and the returns are extras: a dashboard that cannot give
     /// them still shows the holdings.
     func allocation() async -> Allocation? { try? await store.api().allocation() }
     func returns() async -> Returns? { try? await store.api().returns() }
+    /// The returns with each holding over a window. A dashboard older
+    /// than 0.80.0 refuses the window; then the returns since the start
+    /// are what there is, and the page says so.
+    func returns(period: String) async -> Returns? {
+        if period == "all" { return await returns() }
+        if let r = try? await store.api().returns(period: period) { return r }
+        return await returns()
+    }
 
     // MARK: The triage
 

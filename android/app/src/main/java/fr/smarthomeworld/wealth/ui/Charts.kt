@@ -2,8 +2,14 @@ package fr.smarthomeworld.wealth.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.res.stringResource
+import fr.smarthomeworld.wealth.R
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -60,6 +66,12 @@ val Slices = listOf(
  * a label above says when and how much. Sliding sideways walks through
  * time; lifting the finger puts the chart back as it was. Sideways
  * only, so a vertical swipe still scrolls the page the chart sits in.
+ *
+ * Two fingers zoom into time, and only time: spreading them shows fewer
+ * days across the width, moving them together walks the window along.
+ * The height follows the days in view, so a quiet week is not a flat
+ * line. A button in the corner puts the whole window back, and so does
+ * new data.
  */
 @Composable
 fun LineChart(
@@ -74,56 +86,99 @@ fun LineChart(
     val line = if (up) Gain else Loss
     val grid = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
     val scrubbable = values.size > 1 && dates.size == values.size
+    val last = (values.size - 1).coerceAtLeast(1).toFloat()
     var picked by remember(values) { mutableStateOf<Int?>(null) }
     var width by remember { mutableStateOf(0) }
+    // The window in view, in fractional indices: the whole line at first.
+    var from by remember(values) { mutableStateOf(0f) }
+    var to by remember(values) { mutableStateOf(last) }
+    val zoomed = from > 0.001f || to < last - 0.001f
+    // The narrowest window: a few days, or all of them when there are few.
+    val narrowest = minOf(last, 3f)
+
+    fun xOf(i: Float): Float = if (width <= 0) 0f else (i - from) / (to - from) * width
 
     fun indexAt(x: Float): Int {
         if (width <= 0) return 0
-        val i = (x / width * (values.size - 1)).roundToInt()
-        return i.coerceIn(0, values.lastIndex)
+        val i = (from + x / width * (to - from)).roundToInt()
+        return i.coerceIn(from.toInt().coerceAtLeast(0),
+            kotlin.math.ceil(to).toInt().coerceAtMost(values.lastIndex))
     }
 
-    val touch = if (!scrubbable) Modifier else Modifier
-        .pointerInput(values) {
-            detectTapGestures(onPress = { at ->
-                picked = indexAt(at.x)
-                tryAwaitRelease()
-                picked = null
-            })
+    val touch = if (values.size < 2) Modifier else Modifier.pointerInput(values) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            if (scrubbable) picked = indexAt(down.position.x)
+            var pinching = false
+            var sideways = false
+            var dx = 0f
+            var dy = 0f
+            while (true) {
+                val event = awaitPointerEvent()
+                val pressed = event.changes.filter { it.pressed }
+                if (pressed.isEmpty()) break
+                if (pressed.size >= 2) {
+                    pinching = true
+                    picked = null
+                    val a = pressed[0]
+                    val b = pressed[1]
+                    val span = kotlin.math.abs(a.position.x - b.position.x).coerceAtLeast(1f)
+                    val before = kotlin.math.abs(a.previousPosition.x - b.previousPosition.x).coerceAtLeast(1f)
+                    val centre = (a.position.x + b.position.x) / 2
+                    val centreBefore = (a.previousPosition.x + b.previousPosition.x) / 2
+                    if (width > 0) {
+                        val w = to - from
+                        val newW = (w * before / span).coerceIn(narrowest, last)
+                        // The day under the fingers stays under the fingers.
+                        val held = from + centreBefore / width * w
+                        val newFrom = (held - centre / width * newW).coerceIn(0f, last - newW)
+                        from = newFrom
+                        to = newFrom + newW
+                    }
+                    event.changes.forEach { it.consume() }
+                } else if (!pinching) {
+                    val c = pressed[0]
+                    if (c.isConsumed) { picked = null; break }   // the page took it: a scroll
+                    val d = c.positionChange()
+                    dx += d.x; dy += d.y
+                    if (!sideways && kotlin.math.abs(dy) > viewConfiguration.touchSlop &&
+                        kotlin.math.abs(dy) > kotlin.math.abs(dx)) {
+                        picked = null; break                     // vertical: let the page scroll
+                    }
+                    if (kotlin.math.abs(dx) > viewConfiguration.touchSlop) sideways = true
+                    if (sideways && scrubbable) {
+                        c.consume()
+                        picked = indexAt(c.position.x)
+                    }
+                }
+            }
+            picked = null
         }
-        .pointerInput(values) {
-            detectHorizontalDragGestures(
-                onDragStart = { at -> picked = indexAt(at.x) },
-                onDragEnd = { picked = null },
-                onDragCancel = { picked = null },
-                onHorizontalDrag = { change, _ ->
-                    change.consume()
-                    picked = indexAt(change.position.x)
-                },
-            )
-        }
+    }
 
     Box(modifier.onSizeChanged { width = it.width }.then(touch)) {
-        Canvas(Modifier.fillMaxSize()) {
+        Canvas(Modifier.fillMaxSize().clipToBounds()) {
             if (values.size < 2) return@Canvas
-            val lo = values.min()
-            val hi = values.max()
+            val first = from.toInt().coerceAtLeast(0)
+            val end = kotlin.math.ceil(to).toInt().coerceAtMost(values.lastIndex)
+            val shown = values.subList(first, end + 1)
+            val lo = shown.min()
+            val hi = shown.max()
             val span = (hi - lo).takeIf { it > 0.0 } ?: 1.0
-            val stepX = size.width / (values.size - 1)
             // A little air above and below, so the line never touches the edge.
             val top = size.height * 0.08f
             val usable = size.height * 0.84f
 
             fun pointAt(i: Int): Offset {
                 val y = top + usable * (1f - ((values[i] - lo) / span).toFloat())
-                return Offset(stepX * i, y)
+                return Offset((i - from) / (to - from) * size.width, y)
             }
 
             drawLine(grid, Offset(0f, size.height), Offset(size.width, size.height), 1f)
 
             val path = Path().apply {
-                moveTo(0f, pointAt(0).y)
-                for (i in 1 until values.size) {
+                moveTo(pointAt(first).x, pointAt(first).y)
+                for (i in first + 1..end) {
                     val p = pointAt(i)
                     lineTo(p.x, p.y)
                 }
@@ -131,8 +186,8 @@ fun LineChart(
             // The same path closed downwards, filled with a fading wash.
             val under = Path().apply {
                 addPath(path)
-                lineTo(size.width, size.height)
-                lineTo(0f, size.height)
+                lineTo(pointAt(end).x, size.height)
+                lineTo(pointAt(first).x, size.height)
                 close()
             }
             drawPath(under, Brush.verticalGradient(
@@ -145,7 +200,7 @@ fun LineChart(
                 drawLine(line.copy(alpha = 0.5f), Offset(p.x, 0f), Offset(p.x, size.height),
                     1.dp.toPx())
                 drawCircle(line, radius = 5.dp.toPx(), center = p)
-            } else {
+            } else if (end == values.lastIndex) {
                 drawCircle(line, radius = 4.dp.toPx(), center = pointAt(values.lastIndex))
             }
         }
@@ -155,7 +210,7 @@ fun LineChart(
             // The label rides above the finger but stays inside the
             // chart, so the first and last days are readable too.
             var labelWidth by remember { mutableStateOf(0) }
-            val x = if (values.size > 1) width * i / (values.size - 1) else 0
+            val x = xOf(i.toFloat()).roundToInt()
             val left = (x - labelWidth / 2).coerceIn(0, (width - labelWidth).coerceAtLeast(0))
             Surface(
                 Modifier
@@ -170,6 +225,19 @@ fun LineChart(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(Fmt.money(values[i], currency), style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold)
+                }
+            }
+        } else if (zoomed) {
+            // The days in view, and the way back to all of them.
+            Row(Modifier.align(Alignment.TopEnd), verticalAlignment = Alignment.CenterVertically) {
+                if (scrubbable) {
+                    val a = dates[from.roundToInt().coerceIn(0, values.lastIndex)]
+                    val b = dates[to.roundToInt().coerceIn(0, values.lastIndex)]
+                    Text("${Fmt.day(a)} – ${Fmt.day(b)}", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = { from = 0f; to = last }) {
+                    Text(stringResource(R.string.zoom_reset), style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
