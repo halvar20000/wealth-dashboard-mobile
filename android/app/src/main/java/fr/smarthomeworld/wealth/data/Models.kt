@@ -66,6 +66,9 @@ data class Period(
     val mwr: Double? = null,
     val pnl: Double? = null,
     val days: Int = 0,
+    /** One holding over the window the portfolio asked for, from
+     *  dashboard 0.80.0 on; null over the whole time or from an older one. */
+    val period: Period? = null,
 )
 
 @Serializable
@@ -361,6 +364,8 @@ data class Returns(
     val ytd: Period? = null,
     @SerialName("1y") val year: Period? = null,
     val holdings: Map<String, Period> = emptyMap(),
+    /** The securities over the window asked for (dashboard 0.80.0+). */
+    val period: Period? = null,
 )
 
 // ─── Cash flow ───────────────────────────────────────────────────

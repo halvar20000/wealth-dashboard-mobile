@@ -1,15 +1,22 @@
 import SwiftUI
 
-/// The chart's windows, in the order contract rule 7 fixes.
+/// The page's windows: the eight the dashboard measures a return over,
+/// so the chart, the totals and every position agree.
 private struct ChartWindow {
     let key: String
-    let label: LocalizedStringKey
+    let name: String
+
+    init(key: String, label: String.LocalizationValue) {
+        self.key = key
+        name = String(localized: label)
+    }
 }
 
 private let windows = [
-    ChartWindow(key: "1m", label: "1 M"), ChartWindow(key: "3m", label: "3 M"),
-    ChartWindow(key: "6m", label: "6 M"), ChartWindow(key: "ytd", label: "YTD"),
-    ChartWindow(key: "1y", label: "1 Y"), ChartWindow(key: "all", label: "All"),
+    ChartWindow(key: "1d", label: "1D"), ChartWindow(key: "1w", label: "1W"),
+    ChartWindow(key: "1m", label: "1M"), ChartWindow(key: "3m", label: "3M"),
+    ChartWindow(key: "ytd", label: "YTD"), ChartWindow(key: "1y", label: "1Y"),
+    ChartWindow(key: "3y", label: "3Y"), ChartWindow(key: "all", label: "All"),
 ]
 
 /// Everything that is owned, and how it got here.
@@ -40,7 +47,7 @@ struct PortfolioView: View {
                     header
                     chart
                     Picker("Window", selection: $period) {
-                        ForEach(windows, id: \.key) { w in Text(w.label).tag(w.key) }
+                        ForEach(windows, id: \.key) { w in Text(verbatim: w.name).tag(w.key) }
                     }
                     .pickerStyle(.segmented)
                 }
@@ -82,7 +89,12 @@ struct PortfolioView: View {
             // Four calls to a small server are a thing to ask for, not to
             // assume: once when the tab first opens, then on a pull.
             .task { if held == nil { await load() } }
-            .task(id: period) { await loadHistory() }
+            .task(id: period) {
+                async let ret = model.returns(period: period)
+                await loadHistory()
+                let asked = period
+                if let r = await ret, asked == period { returns = r }
+            }
             // Another person's accounts: the page is theirs now, so the
             // old one goes and all of it is asked again.
             .onChange(of: model.person) {
@@ -147,21 +159,32 @@ struct PortfolioView: View {
             Section {
                 let value = rows.reduce(0) { $0 + ($1.valueBase ?? 0) }
                 let invested = rows.reduce(0) { $0 + ($1.netInvested ?? 0) }
+                // Over a window the gain is what the securities made in
+                // it, beyond what was bought or sold; since the start, what
+                // they are worth beyond what went in.
+                let window = period == "all" ? nil : returns?.period
+                let gain = window?.pnl ?? (value - invested)
                 HStack(alignment: .top) {
                     Figure(label: "Securities", value: Fmt.money(value, currency))
                     Spacer()
                     Figure(label: "Invested", value: Fmt.money(invested, currency))
                     Spacer()
-                    Figure(label: "Gain", value: Fmt.signedMoney(value - invested, currency),
-                           colour: .sign(value - invested),
-                           note: returns?.all?.twr.map { Fmt.percent($0) })
+                    Figure(label: window != nil ? gainLabel : "Gain",
+                           value: Fmt.signedMoney(gain, currency),
+                           colour: .sign(gain),
+                           note: (window != nil ? window?.twr : returns?.all?.twr).map { Fmt.percent($0) })
+                }
+                if period != "all", window == nil, returns != nil, !rows.isEmpty {
+                    Text("The figures per position for this window need dashboard 0.80.0.")
+                        .font(.caption2).foregroundStyle(.secondary)
                 }
             } footer: {
                 if let asOf = held.pricesAsOf { Text("Prices \(Fmt.day(asOf))") }
             }
             Section {
                 ForEach(rows) { h in
-                    HoldingRow(holding: h, ret: returns?.holdings?[h.isin ?? ""], currency: currency)
+                    HoldingRow(holding: h, ret: returns?.holdings?[h.isin ?? ""], currency: currency,
+                               windowed: period != "all")
                 }
             }
         } else if loading {
@@ -170,6 +193,11 @@ struct PortfolioView: View {
         if held != nil, rows.isEmpty {
             Section { Text("No securities held.").foregroundStyle(.secondary) }
         }
+    }
+
+    /// "Gain · 1W": the window's own label beside the word.
+    private var gainLabel: LocalizedStringKey {
+        "Gain · \(windows.first { $0.key == period }?.name ?? period)"
     }
 
     // MARK: Where the money sits
@@ -302,7 +330,7 @@ struct PortfolioView: View {
         loading = true
         defer { loading = false }
         async let ring = model.allocation()
-        async let ret = model.returns()
+        async let ret = model.returns(period: period)
         do {
             held = try await model.holdings()
             error = nil
@@ -346,10 +374,15 @@ private struct HoldingRow: View {
     let holding: Holding
     let ret: Period?
     let currency: String
+    /// Over a window: what the position made in it. Since the start, or
+    /// from a dashboard that does not know windows: since it was bought.
+    var windowed = false
     @State private var open = false
 
     var body: some View {
         let h = holding
+        let window = windowed ? ret?.period : nil
+        let gain = window != nil ? window?.pnl : h.gain
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -360,14 +393,16 @@ private struct HoldingRow: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(Fmt.money(h.valueBase, currency)).fontWeight(.bold)
-                    Text([ret?.twr.map { Fmt.percent($0) }, Fmt.signedMoney(h.gain, currency)]
+                    Text([(window != nil ? window?.twr : ret?.twr).map { Fmt.percent($0) },
+                          gain.map { Fmt.signedMoney($0, currency) }]
                         .compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(Color.sign(h.gain))
+                        .font(.caption).foregroundStyle(Color.sign(gain))
                 }
             }
             if open {
                 VStack(spacing: 4) {
                     Detail(label: "Invested", value: Fmt.money(h.netInvested, currency))
+                    if window != nil { Detail(label: "Gain", value: Fmt.signedMoney(h.gain, currency)) }
                     if let v = ret?.twrAnnual { Detail(label: "Return p.a.", value: Fmt.percent(v)) }
                     if let v = ret?.mwr { Detail(label: "Money-weighted p.a.", value: Fmt.percent(v)) }
                     if let v = ret?.since { Detail(label: "Since", value: Fmt.day(v)) }

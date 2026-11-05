@@ -268,4 +268,7 @@
     <string name="cashflow_all_rows">Alle Buchungen</string>
     <string name="setting_categories">Kategorien</string>
     <string name="setting_categories_note">Kategorien anlegen und bearbeiten.</string>
+    <string name="zoom_reset">Alles zeigen</string>
+    <string name="gain_in">Gewinn · %1$s</string>
+    <string name="window_needs_server">Die Zahlen je Position für diesen Zeitraum brauchen Dashboard 0.80.0.</string>
 </resources>

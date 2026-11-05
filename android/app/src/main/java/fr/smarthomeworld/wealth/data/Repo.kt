@@ -67,15 +67,35 @@ class Repo(private val store: Store) {
         Portfolio(
             holdings = held.holdings.sortedByDescending { it.valueBase },
             allocation = runCatching { api.allocation() }.getOrDefault(Allocation()),
-            returns = runCatching { api.returns() }.getOrDefault(Returns()),
-            history = runCatching { api.history(period) }.getOrDefault(History()),
+            returns = runCatching { returnsOver(api, period) }.getOrDefault(Returns()),
+            history = runCatching { historyOf(api, period) }.getOrDefault(History()),
             baseCurrency = held.baseCurrency,
             pricesAsOf = held.pricesAsOf,
         )
     }
 
+    /** The line of one of the eight windows: the dashboard's history
+     *  that covers it, cut to the window. */
     suspend fun history(period: String): History = withContext(Dispatchers.IO) {
-        store.api().history(period)
+        historyOf(store.api(), period)
+    }
+
+    /** The returns with each holding over the window. A dashboard
+     *  older than 0.80.0 refuses the window; then the returns since the
+     *  start are what there is, and the page says so. */
+    suspend fun returns(period: String): Returns = withContext(Dispatchers.IO) {
+        returnsOver(store.api(), period)
+    }
+
+    private fun returnsOver(api: Api, period: String): Returns =
+        if (period == "all") api.returns()
+        else runCatching { api.returns(period) }.getOrElse { api.returns() }
+
+    private fun historyOf(api: Api, period: String): History {
+        val h = api.history(ChartWindow.serverPeriod(period))
+        if (ChartWindow.cutoff(period) == null) return h
+        val points = ChartWindow.trim(h.points.filter { it.netWorth != null || it.securities != null }, period)
+        return h.copy(period = period, points = points, firstDate = points.firstOrNull()?.date ?: h.firstDate)
     }
 
     /** Take an upload back. Several files in one share make several

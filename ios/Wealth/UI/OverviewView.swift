@@ -92,8 +92,9 @@ struct OverviewView: View {
                 .padding(.vertical, 4)
                 .listRowBackground(Color.clear)
 
-                // The net worth over the last year, as on Android. It is
-                // the whole figure; the portfolio tab draws the depots.
+                // The net worth over the window of the tile tapped below,
+                // as on Android. It is the whole figure; the portfolio tab
+                // draws the depots.
                 if model.netWorthLine.count > 1 {
                     LineChart(values: model.netWorthLine, dates: model.netWorthDates, currency: ccy)
                         .frame(height: 150)
@@ -114,9 +115,16 @@ struct OverviewView: View {
                 Section("Performance") {
                     // Two rows of four rather than a strip that scrolls off
                     // the screen: the point of these eight is comparing them.
+                    // A tap draws the line above over that window.
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
                         ForEach(shown, id: \.key) { p in
-                            PerfTile(label: p.label, period: s.performance![p.key]!, currency: ccy)
+                            Button {
+                                Task { await model.showLine(p.key) }
+                            } label: {
+                                PerfTile(label: p.label, period: s.performance![p.key]!, currency: ccy,
+                                         selected: model.lineWindow == p.key)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.vertical, 4)
@@ -210,6 +218,7 @@ private struct PerfTile: View {
     let label: LocalizedStringKey
     let period: Period
     let currency: String
+    var selected = false
 
     var body: some View {
         let colour = Color.sign(period.twr)
@@ -224,6 +233,13 @@ private struct PerfTile: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 10)
         .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            if selected {
+                RoundedRectangle(cornerRadius: 12).strokeBorder(Color.accentColor, lineWidth: 2)
+            }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

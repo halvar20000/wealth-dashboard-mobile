@@ -90,6 +90,7 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
     val txns by vm.txns.collectAsStateWithLifecycle()
     val triage by vm.triage.collectAsStateWithLifecycle()
     val portfolio by vm.portfolio.collectAsStateWithLifecycle()
+    val line by vm.line.collectAsStateWithLifecycle()
     val cashflow by vm.cashflow.collectAsStateWithLifecycle()
     val categories by vm.categories.collectAsStateWithLifecycle()
     val edit by vm.edit.collectAsStateWithLifecycle()
@@ -282,7 +283,9 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                 }
                 else -> OverviewScreen(
                     snapshot = snap, at = state.at, stale = state.stale, error = state.error,
-                    history = portfolio.history.points,
+                    history = line.points,
+                    window = line.window,
+                    onWindow = { vm.loadLine(it) },
                     excluded = state.excluded,
                     onToggleClass = { vm.toggleClass(it) },
                     onAccounts = { tab = Tab.Portfolio; vm.loadPortfolio() },

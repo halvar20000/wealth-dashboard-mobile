@@ -420,6 +420,38 @@ final class WealthTests: XCTestCase {
         XCTAssertEqual(history.line, [1, 3])
     }
 
+    // The eight return windows on a history that knows six: a week is
+    // cut from the month, three years from everything, and a day keeps
+    // both ends of its line even when the last point is the only one in it.
+    func testTimeWindowCutsTheHistory() throws {
+        XCTAssertEqual(["1d", "1w", "1m", "3m", "ytd", "1y", "3y", "all"].map(TimeWindow.serverPeriod),
+                       ["1m", "1m", "1m", "3m", "ytd", "1y", "all", "all"])
+        let today = ISO8601DateFormatter().date(from: "2026-11-05T12:00:00Z")!
+        XCTAssertEqual(TimeWindow.cutoff("1w", today: today), "2026-10-29")
+        XCTAssertNil(TimeWindow.cutoff("1m", today: today))
+        let days = (20...31).map { #"{"date": "2026-10-\#($0)", "net_worth": \#($0)}"# }
+            + (1...5).map { #"{"date": "2026-11-0\#($0)", "net_worth": \#(31 + $0)}"# }
+        let json = #"{"period": "1m", "points": ["# + days.joined(separator: ",") + "]}"
+        let month = try Api.decoder.decode(History.self, from: Data(json.utf8))
+        let week = TimeWindow.trim(month, to: "1w", today: today)
+        XCTAssertEqual(week.lineDates.first, "2026-10-29")
+        XCTAssertEqual(week.line.count, 8)
+        XCTAssertEqual(week.firstDate, "2026-10-29")
+        var sparse = month
+        sparse.points = Array(month.points!.prefix(3))   // nothing in the last day
+        XCTAssertEqual(TimeWindow.trim(sparse, to: "1d", today: today).line.count, 2)
+        XCTAssertEqual(TimeWindow.trim(month, to: "1m", today: today).line.count, 17)
+    }
+
+    // A window's figures sit beside the whole-time ones, per holding too.
+    func testReturnsOverAWindow() throws {
+        let json = #"{"all": {"twr": 0.2}, "period": {"key": "1w", "twr": 0.01, "pnl": 120.5, "since": "2026-10-29"}, "holdings": {"IE00B4L5Y983": {"name": "World", "twr": 0.3, "period": {"twr": -0.02, "pnl": -40}}}}"#
+        let r = try Api.decoder.decode(Returns.self, from: Data(json.utf8))
+        XCTAssertEqual(r.period?.pnl, 120.5)
+        XCTAssertEqual(r.holdings?["IE00B4L5Y983"]?.period?.pnl, -40)
+        XCTAssertEqual(r.holdings?["IE00B4L5Y983"]?.twr, 0.3)
+    }
+
     // The portfolio draws the depots alone; a day taken from another
     // app's totals has no split and drops out of that line only.
     func testHistorySecuritiesLine() throws {

@@ -11,6 +11,11 @@ Tag kommt darüber eine neue. Eine Überschrift ist `## 1.2.3`, jeder
 Eintrag eine Zeile mit `- `. Text vor der ersten Überschrift zeigen die
 Apps nicht.
 
+## 1.2.10
+- Übersicht: Ein Tipp auf einen Zeitraum (1 T, 1 W, 1 M …) zeigt den Graph darüber über genau diesen Zeitraum.
+- In die Graphen lässt sich mit zwei Fingern hineinzoomen, nur auf der Zeitachse; „Alles zeigen“ holt den ganzen Zeitraum zurück.
+- Portfolio: Zeiträume von 1 Tag bis Start, und Gewinn und Rendite jeder Position und der Summe gelten für den gewählten Zeitraum (braucht Dashboard 0.80.0).
+
 ## 1.2.9
 - Beträge sehen überall gleich aus: immer mit Cent, z. B. 3.300,00 € statt 3.300 € neben 200,30 €.
 

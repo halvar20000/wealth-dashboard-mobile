@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fr.smarthomeworld.wealth.PortfolioState
 import fr.smarthomeworld.wealth.data.Account
@@ -22,10 +23,13 @@ import fr.smarthomeworld.wealth.data.Holding
 import fr.smarthomeworld.wealth.data.Period
 import fr.smarthomeworld.wealth.R
 
-/** The windows the chart offers, in the order the dashboard names them. */
+/** The windows the page offers: the eight the dashboard measures a
+ *  return over, so the chart, the totals and every position agree. */
 private val PERIODS = listOf(
-    "1m" to R.string.period_1m, "3m" to R.string.period_3m, "6m" to R.string.period_6m,
-    "ytd" to R.string.period_ytd, "1y" to R.string.period_1y, "all" to R.string.period_all,
+    "1d" to R.string.period_1d, "1w" to R.string.period_1w,
+    "1m" to R.string.period_1m, "3m" to R.string.period_3m,
+    "ytd" to R.string.period_ytd, "1y" to R.string.period_1y,
+    "3y" to R.string.period_3y, "all" to R.string.period_all,
 )
 
 /**
@@ -95,13 +99,23 @@ fun PortfolioScreen(
         }
 
         item {
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                PERIODS.forEachIndexed { i, (key, label) ->
-                    SegmentedButton(
-                        selected = state.period == key,
+            // Eight in one row: a segmented button would spend the room
+            // on its tick mark and cut "YTD" short.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                PERIODS.forEach { (key, label) ->
+                    val on = state.period == key
+                    Surface(
                         onClick = { onPeriod(key) },
-                        shape = SegmentedButtonDefaults.itemShape(i, PERIODS.size),
-                    ) { Text(stringResource(label), style = MaterialTheme.typography.labelSmall) }
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (on) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    ) {
+                        Text(stringResource(label), Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                            textAlign = TextAlign.Center, maxLines = 1)
+                    }
                 }
             }
         }
@@ -131,7 +145,8 @@ fun PortfolioScreen(
             0 -> {
                 item { Totals(state) }
                 items(state.holdings, key = { it.isin }) { h ->
-                    HoldingCard(h, state.returns.holdings[h.isin], state.baseCurrency)
+                    HoldingCard(h, state.returns.holdings[h.isin], state.baseCurrency,
+                        windowed = state.period != "all")
                 }
             }
             1 -> item { AllocationCard(state) }
@@ -188,16 +203,29 @@ fun PortfolioScreen(
 private fun Totals(state: PortfolioState) {
     val value = state.holdings.sumOf { it.valueBase }
     val invested = state.holdings.sumOf { it.invested }
-    val gain = value - invested
+    // Over a window the gain is what the securities made in it, beyond
+    // what was bought or sold; since the start, what they are worth
+    // beyond what went in — the figure this card always showed.
+    val window = state.returns.period.takeIf { state.period != "all" }
+    val gain = window?.pnl ?: (value - invested)
+    val label = PERIODS.firstOrNull { it.first == state.period }?.second
     Card(shape = RoundedCornerShape(18.dp)) {
-        Row(Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween) {
-            Figure(stringResource(R.string.view_securities), Fmt.money(value, state.baseCurrency))
-            Figure(stringResource(R.string.invested), Fmt.money(invested, state.baseCurrency))
-            Figure(
-                stringResource(R.string.gain), Fmt.signedMoney(gain, state.baseCurrency),
-                colour = if (gain >= 0) Gain else Loss,
-                note = state.returns.all?.twr?.let { Fmt.percent(it) })
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Figure(stringResource(R.string.view_securities), Fmt.money(value, state.baseCurrency))
+                Figure(stringResource(R.string.invested), Fmt.money(invested, state.baseCurrency))
+                Figure(
+                    if (window != null && label != null) stringResource(R.string.gain_in, stringResource(label))
+                    else stringResource(R.string.gain),
+                    Fmt.signedMoney(gain, state.baseCurrency),
+                    colour = if (gain >= 0) Gain else Loss,
+                    note = (if (window != null) window.twr else state.returns.all?.twr)?.let { Fmt.percent(it) })
+            }
+            if (state.period != "all" && window == null && !state.loading && state.holdings.isNotEmpty()) {
+                Text(stringResource(R.string.window_needs_server), Modifier.padding(top = 8.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -220,7 +248,10 @@ private fun Figure(label: String, value: String, colour: androidx.compose.ui.gra
 
 /** One security. Tapping it opens what would otherwise be clutter. */
 @Composable
-private fun HoldingCard(h: Holding, ret: Period?, base: String?) {
+private fun HoldingCard(h: Holding, ret: Period?, base: String?, windowed: Boolean = false) {
+    // Over a window: what the position made in it. Since the start, or
+    // from a dashboard that does not know windows: since it was bought.
+    val inWindow = ret?.period.takeIf { windowed }
     var open by remember(h.isin) { mutableStateOf(false) }
     Card(shape = RoundedCornerShape(18.dp),
          modifier = Modifier.fillMaxWidth().clickable { open = !open }) {
@@ -239,11 +270,16 @@ private fun HoldingCard(h: Holding, ret: Period?, base: String?) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(Fmt.money(h.valueBase, base), fontWeight = FontWeight.Bold)
-                    val colour = if (h.gain >= 0) Gain else Loss
+                    val gain = if (inWindow != null) inWindow.pnl else h.gain
+                    val colour = when {
+                        gain == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                        gain >= 0 -> Gain
+                        else -> Loss
+                    }
                     Text(
                         listOfNotNull(
-                            ret?.twr?.let { Fmt.percent(it) },
-                            Fmt.signedMoney(h.gain, base),
+                            (if (inWindow != null) inWindow.twr else ret?.twr)?.let { Fmt.percent(it) },
+                            gain?.let { Fmt.signedMoney(it, base) },
                         ).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall, color = colour)
                 }
@@ -252,6 +288,9 @@ private fun HoldingCard(h: Holding, ret: Period?, base: String?) {
                 Column(Modifier.padding(top = 12.dp),
                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Detail(stringResource(R.string.invested), Fmt.money(h.invested, base))
+                    if (inWindow != null) {
+                        Detail(stringResource(R.string.gain), Fmt.signedMoney(h.gain, base))
+                    }
                     ret?.twrAnnual?.let { Detail(stringResource(R.string.return_pa), Fmt.percent(it)) }
                     ret?.mwr?.let { Detail(stringResource(R.string.money_weighted_pa), Fmt.percent(it)) }
                     ret?.since?.let { Detail(stringResource(R.string.since), Fmt.day(it)) }

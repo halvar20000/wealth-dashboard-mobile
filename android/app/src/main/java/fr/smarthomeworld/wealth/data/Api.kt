@@ -233,8 +233,9 @@ class Api(
     }
 
     /** The return of the whole portfolio and of each holding. */
-    fun returns(): Returns {
-        val text = get("/api/v1/tools/performance")
+    fun returns(period: String? = null): Returns {
+        val text = get("/api/v1/tools/performance",
+            if (period == null) emptyMap() else mapOf("period" to period))
         val reply = json.decodeFromString(ToolReply.serializer(Returns.serializer()), text)
         return reply.result ?: Returns()
     }

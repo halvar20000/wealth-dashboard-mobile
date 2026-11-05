@@ -904,6 +904,16 @@
         }
       }
     },
+    "Gain · %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gewinn · %@"
+          }
+        }
+      }
+    },
     "Held in" : {
       "localizations" : {
         "de" : {
@@ -1684,6 +1694,16 @@
         }
       }
     },
+    "Show all" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles zeigen"
+          }
+        }
+      }
+    },
     "Since" : {
       "localizations" : {
         "de" : {
@@ -1990,6 +2010,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Die Zahl aus der letzten Aktualisierung der App."
+          }
+        }
+      }
+    },
+    "The figures per position for this window need dashboard 0.80.0." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Zahlen je Position für diesen Zeitraum brauchen Dashboard 0.80.0."
           }
         }
       }
