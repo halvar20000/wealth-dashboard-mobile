@@ -1774,16 +1774,6 @@
         }
       }
     },
-    "Swipe right to choose" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach rechts wischen zum Auswählen"
-          }
-        }
-      }
-    },
     "Swipe right: %@" : {
       "localizations" : {
         "de" : {
@@ -1860,6 +1850,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wird zurückgenommen…"
+          }
+        }
+      }
+    },
+    "Tap to choose" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippen zum Auswählen"
           }
         }
       }

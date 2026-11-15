@@ -100,6 +100,7 @@
     <string name="triage_empty">Nothing waiting. The queue is empty.</string>
     <string name="triage_skip">Skip</string>
     <string name="triage_undo">Undo last</string>
+    <string name="triage_details">Details</string>
     <string name="triage_choose">Choose</string>
     <string name="rule_remember">Remember as a rule</string>
     <string name="rule_pattern">The rule remembers</string>

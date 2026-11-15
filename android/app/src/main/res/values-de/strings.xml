@@ -98,6 +98,7 @@
     <string name="triage_empty">Nichts offen. Die Warteschlange ist leer.</string>
     <string name="triage_skip">Überspringen</string>
     <string name="triage_undo">Letzte rückgängig</string>
+    <string name="triage_details">Details</string>
     <string name="triage_choose">Auswählen</string>
     <string name="rule_remember">Als Regel merken</string>
     <string name="rule_pattern">Regel merkt sich</string>
