@@ -11,6 +11,10 @@ Tag kommt darüber eine neue. Eine Überschrift ist `## 1.2.3`, jeder
 Eintrag eine Zeile mit `- `. Text vor der ersten Überschrift zeigen die
 Apps nicht.
 
+## 1.2.12
+- Einordnen: Ein Tipp auf die Karte zeigt alle Details der Buchung (ganzer Buchungstext, Gegenpartei, Konto, Art, Vorschlag); „Auswählen“ führt von dort weiter.
+- „Als Regel merken“ ist beim Einordnen jetzt standardmäßig aus, auch beim Wischen nach rechts: Eine Regel entsteht nur noch, wenn du den Schalter bewusst einschaltest.
+
 ## 1.2.11
 - Buchungslisten zeigen bei Kartenzahlungen den Händler als Hauptzeile; der Buchungstext der Bank („VISA Debitkartenumsatz vom …“) steht klein darunter. Gilt auch für die Karten beim Zuordnen.
 

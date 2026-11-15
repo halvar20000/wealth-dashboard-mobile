@@ -104,7 +104,6 @@
     <string name="rule_pattern_note">Der Text, an dem die nächste Buchung erkannt wird — kürzer ist meist besser: „Tenmanya“ statt der ganzen Zeile.</string>
     <string name="fetch_again">Nochmal laden</string>
     <string name="swipe_right">Nach rechts wischen: %1$s</string>
-    <string name="and_remember">und „%1$s“ merken</string>
     <string name="tap_to_choose">Zum Auswählen tippen</string>
     <string name="guess">Vorschlag</string>
     <string name="shared">Gemeinsam</string>
@@ -217,6 +216,7 @@
     <string name="txn_tags">Schlagwörter</string>
     <string name="txn_source">Quelle</string>
     <string name="txn_amount">Betrag</string>
+    <string name="txn_guess">Vorschlag</string>
     <string name="txn_number">Nummer</string>
     <string name="txn_categorise">Kategorie ändern</string>
     <string name="txn_edit">Bearbeiten</string>

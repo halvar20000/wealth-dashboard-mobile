@@ -106,7 +106,6 @@
     <string name="rule_pattern_note">The text the next transaction is recognised by — shorter is usually better: “Tenmanya” rather than the whole line.</string>
     <string name="fetch_again">Fetch again</string>
     <string name="swipe_right">Swipe right: %1$s</string>
-    <string name="and_remember">and remember “%1$s”</string>
     <string name="tap_to_choose">Tap to choose</string>
     <string name="guess">guess</string>
     <string name="shared">Shared</string>
@@ -219,6 +218,7 @@
     <string name="txn_tags">Tags</string>
     <string name="txn_source">Source</string>
     <string name="txn_amount">Amount</string>
+    <string name="txn_guess">Guess</string>
     <string name="txn_number">Number</string>
     <string name="txn_categorise">Change category</string>
     <string name="txn_edit">Edit</string>

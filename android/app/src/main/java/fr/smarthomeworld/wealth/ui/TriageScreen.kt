@@ -8,6 +8,8 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -38,9 +40,10 @@ import fr.smarthomeworld.wealth.R
  * written down before they are sent and go out when there is a
  * network. See Repo.decide().
  *
- * Right: take the guess (or, with no guess, open the sheet).
+ * Right: take the guess (or, with no guess, open the sheet) — for this
+ *        row only; a rule is made only where someone switches it on.
  * Left:  skip — the row stays in the queue, it is simply not this one.
- * Tap:   the sheet, to choose something else.
+ * Tap:   everything about the row, with "Choose" at the bottom.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +62,7 @@ fun TriageScreen(
 ) {
     var index by remember(rows) { mutableStateOf(0) }
     var sheetFor by remember { mutableStateOf<Waiting1?>(null) }
+    var detailsFor by remember { mutableStateOf<Waiting1?>(null) }
     val row = rows.getOrNull(index)
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -93,11 +97,12 @@ fun TriageScreen(
                     onRight = {
                         val guess = row.suggestion
                         if (!owning && guess != null) {
-                            onDecide(row, guess, null, row.pattern, true); index++
+                            onDecide(row, guess, null, row.pattern, false); index++
                         } else sheetFor = row
                     },
                     onLeft = { index++ },
                     onTap = { sheetFor = row },
+                    onOpen = { detailsFor = row },
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -115,6 +120,15 @@ fun TriageScreen(
         }
     }
 
+    detailsFor?.let { shown ->
+        ModalBottomSheet(onDismissRequest = { detailsFor = null }) {
+            RowDetails(shown, guessLabel = if (owning) null else
+                categories.firstOrNull { it.slug == shown.suggestion }?.label ?: shown.suggestion) {
+                detailsFor = null; sheetFor = shown
+            }
+        }
+    }
+
     sheetFor?.let { pick ->
         ModalBottomSheet(onDismissRequest = { sheetFor = null }) {
             // The rule is decided here, above the choice, because the
@@ -122,7 +136,9 @@ fun TriageScreen(
             // for the next hundred rows — and they were only ever
             // shown, never editable.
             var pattern by remember(pick.id) { mutableStateOf(pick.pattern.orEmpty()) }
-            var makeRule by remember(pick.id) { mutableStateOf(true) }
+            // Off to start with: a rule files every row like this one
+            // from now on, and a wrong one does a lot of damage quietly.
+            var makeRule by remember(pick.id) { mutableStateOf(false) }
             RuleEditor(pattern, makeRule, { pattern = it }, { makeRule = it })
             if (owning) {
                 PeopleSheet(people) { owner ->
@@ -172,6 +188,37 @@ private fun RuleEditor(
     }
 }
 
+/** Everything the queue knows about one row — the card cuts the bank's
+ *  text short, and the row is often only recognisable by all of it. */
+@Composable
+private fun RowDetails(row: Waiting1, guessLabel: String?, onChoose: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)
+        .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        val name = rowTitle(row.counterparty, row.description, row.kind, 200)
+        Text(name.title.ifEmpty { "—" }, style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold)
+        Text(Fmt.signedMoney(row.amount, row.currency),
+            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+            color = if (row.amount >= 0) Gain else Loss)
+        Spacer(Modifier.height(6.dp))
+        HorizontalDivider()
+        Line(stringResource(R.string.txn_date), Fmt.day(row.date))
+        row.accountName?.takeIf { it.isNotBlank() }?.let { Line(stringResource(R.string.account), it) }
+        row.counterparty?.takeIf { it.isNotBlank() }?.let { Line(stringResource(R.string.txn_counterparty), it) }
+        row.description?.takeIf { it.isNotBlank() }?.let { Line(stringResource(R.string.txn_description), it) }
+        Line(stringResource(R.string.txn_kind), kindLabel(row.kind))
+        Line(stringResource(R.string.txn_amount), Fmt.money(row.amount, row.currency))
+        guessLabel?.let { Line(stringResource(R.string.txn_guess), it) }
+        Line(stringResource(R.string.txn_number), "#${row.id}")
+        Spacer(Modifier.height(10.dp))
+        Button(onClick = onChoose) {
+            Icon(Icons.Default.Check, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.triage_choose))
+        }
+    }
+}
+
 @Composable
 private fun Empty(text: String, onRefresh: () -> Unit) {
     Column(Modifier.fillMaxSize(), Arrangement.Center, Alignment.CenterHorizontally) {
@@ -192,6 +239,7 @@ private fun SwipeCard(
     onRight: () -> Unit,
     onLeft: () -> Unit,
     onTap: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     var offset by remember(row.id) { mutableStateOf(0f) }
     val x by animateFloatAsState(offset, label = "swipe")
@@ -211,6 +259,7 @@ private fun SwipeCard(
                 translationX = x
                 rotationZ = (x / 60f).coerceIn(-6f, 6f)
             }
+            .clickable(onClick = onOpen)
             .pointerInput(row.id) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
@@ -246,10 +295,6 @@ private fun SwipeCard(
                 AssistChip(onClick = onRight, label = {
                     Text(stringResource(R.string.swipe_right, guessLabel ?: guess))
                 })
-                row.pattern?.takeIf { it.isNotBlank() }?.let {
-                    Text(stringResource(R.string.and_remember, it), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             } else {
                 Spacer(Modifier.height(14.dp))
                 AssistChip(onClick = onTap, label = { Text(stringResource(R.string.tap_to_choose)) })
