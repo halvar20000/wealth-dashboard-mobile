@@ -11,6 +11,9 @@ Tag kommt darüber eine neue. Eine Überschrift ist `## 1.2.3`, jeder
 Eintrag eine Zeile mit `- `. Text vor der ersten Überschrift zeigen die
 Apps nicht.
 
+## 1.2.11
+- Buchungslisten zeigen bei Kartenzahlungen den Händler als Hauptzeile; der Buchungstext der Bank („VISA Debitkartenumsatz vom …“) steht klein darunter. Gilt auch für die Karten beim Zuordnen.
+
 ## 1.2.10
 - Übersicht: Ein Tipp auf einen Zeitraum (1 T, 1 W, 1 M …) zeigt den Graph darüber über genau diesen Zeitraum.
 - In die Graphen lässt sich mit zwei Fingern hineinzoomen, nur auf der Zeitachse; „Alles zeigen“ holt den ganzen Zeitraum zurück.

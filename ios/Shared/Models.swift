@@ -133,6 +133,36 @@ struct SyncHealth: Codable {
     var lastSyncAt: String?
 }
 
+/// How a row is named in a list: the merchant first, when the bank gave
+/// one. A card payment's description is only "VISA Debitkartenumsatz
+/// vom …"; the shop is in the counterparty. So the counterparty is the
+/// title and the description, if it says something else, the small line
+/// under it. Without a counterparty the row reads as it always did. The
+/// same rule as Android's `rowTitle`.
+struct RowTitle: Equatable {
+    let title: String
+    let subtitle: String?
+
+    init(counterparty: String?, description: String?, kind: String?, limit: Int) {
+        let who = RowTitle.tidy(counterparty)
+        let what = RowTitle.tidy(description)
+        if let who {
+            title = String(who.prefix(limit))
+            subtitle = what.flatMap { $0 == who ? nil : String($0.prefix(limit)) }
+        } else {
+            title = String((what ?? RowTitle.tidy(kind) ?? "").prefix(limit))
+            subtitle = nil
+        }
+    }
+
+    /// Trimmed, runs of spaces folded into one (banks pad names to a
+    /// fixed width); nil when nothing is left.
+    static func tidy(_ text: String?) -> String? {
+        let words = (text ?? "").split(whereSeparator: \.isWhitespace)
+        return words.isEmpty ? nil : words.joined(separator: " ")
+    }
+}
+
 struct TransactionPage: Codable {
     var matched: Int?
     var returned: Int?
@@ -165,6 +195,11 @@ struct Txn: Codable, Identifiable, Hashable {
         let text = (description ?? "").trimmingCharacters(in: .whitespaces)
         if !text.isEmpty { return text }
         return counterparty ?? kind ?? "—"
+    }
+
+    /// Title and small line for a list; see `RowTitle`.
+    func rowTitle(limit: Int) -> RowTitle {
+        RowTitle(counterparty: counterparty, description: description, kind: kind, limit: limit)
     }
 }
 
@@ -509,6 +544,11 @@ struct QueueRow: Codable, Identifiable, Hashable {
         let text = (description ?? "").trimmingCharacters(in: .whitespaces)
         if !text.isEmpty { return String(text.prefix(90)) }
         return counterparty ?? "—"
+    }
+
+    /// Title and small line for the swipe card; see `RowTitle`.
+    func rowTitle(limit: Int) -> RowTitle {
+        RowTitle(counterparty: counterparty, description: description, kind: kind, limit: limit)
     }
 }
 

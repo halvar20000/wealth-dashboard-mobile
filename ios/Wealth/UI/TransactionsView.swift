@@ -85,10 +85,17 @@ private struct TxnRow: View {
     let categoryLabel: String?
 
     var body: some View {
+        let name = txn.rowTitle(limit: 70)
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(String((txn.description ?? txn.counterparty ?? txn.kind ?? "").prefix(70)))
+                Text(name.title)
                     .lineLimit(2)
+                if let subtitle = name.subtitle {
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Text([Fmt.day(txn.txnDate), txn.account, categoryLabel]
                         .compactMap { $0 }
                         .filter { !$0.isEmpty }
