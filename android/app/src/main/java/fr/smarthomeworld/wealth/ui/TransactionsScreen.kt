@@ -73,8 +73,12 @@ fun TransactionsScreen(
                 Row(Modifier.fillMaxWidth().clickable { openId = t.id; onOpen() },
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
-                        Text(t.description?.take(70) ?: t.kind.orEmpty(),
-                            style = MaterialTheme.typography.bodyMedium, maxLines = 2)
+                        val name = rowTitle(t.counterparty, t.description, t.kind, 70)
+                        Text(name.title, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
+                        name.subtitle?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        }
                         Text(
                             listOfNotNull(Fmt.day(t.date), t.account,
                                 t.category?.let { labels[it] ?: it }).joinToString(" · "),

@@ -203,9 +203,10 @@ private struct SwipeCard: View {
             Text(Fmt.signedMoney(row.amount, row.currency))
                 .font(.system(size: 30, weight: .bold))
                 .foregroundStyle((row.amount ?? 0) < 0 ? Color.primary : Color.gain)
-            Text(row.headline).font(.body)
-            if let other = row.counterparty, !other.isEmpty, other != row.description {
-                Text(other).font(.subheadline).foregroundStyle(.secondary)
+            let name = row.rowTitle(limit: 90)
+            Text(name.title.isEmpty ? "—" : name.title).font(.body)
+            if let subtitle = name.subtitle {
+                Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
             }
             Text([Fmt.day(row.txnDate), row.accountName].compactMap { $0 }.filter { !$0.isEmpty }
                 .joined(separator: " · "))

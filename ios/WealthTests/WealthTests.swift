@@ -58,6 +58,28 @@ final class WealthTests: XCTestCase {
         XCTAssertNil(list[1].deletable)
     }
 
+    // A card payment is named by its merchant, the bank's text below;
+    // a row without a counterparty reads as before.
+    func testRowTitlePutsTheMerchantFirst() {
+        let card = RowTitle(counterparty: "EDEKA.WIRKNER/LUDWIGSBURG",
+                            description: "VISA Debitkartenumsatz vom 12.11.2026", kind: "card", limit: 70)
+        XCTAssertEqual(card.title, "EDEKA.WIRKNER/LUDWIGSBURG")
+        XCTAssertEqual(card.subtitle, "VISA Debitkartenumsatz vom 12.11.2026")
+
+        let transfer = RowTitle(counterparty: "  ", description: "Miete November", kind: "transfer", limit: 70)
+        XCTAssertEqual(transfer.title, "Miete November")
+        XCTAssertNil(transfer.subtitle)
+
+        let padded = RowTitle(counterparty: "PayPal Europe S.a.r.l. et Cie S.C.A                  ..",
+                              description: "PayPal Europe S.a.r.l. et Cie S.C.A ..", kind: nil, limit: 70)
+        XCTAssertEqual(padded.title, "PayPal Europe S.a.r.l. et Cie S.C.A ..")
+        XCTAssertNil(padded.subtitle)
+
+        XCTAssertEqual(RowTitle(counterparty: nil, description: nil, kind: "fee", limit: 70).title, "fee")
+        XCTAssertEqual(RowTitle(counterparty: String(repeating: "x", count: 100),
+                                description: nil, kind: nil, limit: 70).title.count, 70)
+    }
+
     // A correction keeps what update_transaction does not send back.
     func testPatchKeepsTheAccountName() throws {
         let row = Txn(id: 7, accountId: 1, account: "Giro", txnDate: "2026-10-01",

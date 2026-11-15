@@ -231,9 +231,9 @@ private fun SwipeCard(
                 color = if (row.amount < 0) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(8.dp))
-            Text(row.description?.take(90) ?: row.counterparty ?: "—",
-                style = MaterialTheme.typography.bodyLarge)
-            row.counterparty?.takeIf { it.isNotBlank() && it != row.description }?.let {
+            val name = rowTitle(row.counterparty, row.description, row.kind, 90)
+            Text(name.title.ifEmpty { "—" }, style = MaterialTheme.typography.bodyLarge)
+            name.subtitle?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
