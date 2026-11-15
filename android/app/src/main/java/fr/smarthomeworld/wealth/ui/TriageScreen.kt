@@ -43,7 +43,8 @@ import fr.smarthomeworld.wealth.R
  * Right: take the guess (or, with no guess, open the sheet) — for this
  *        row only; a rule is made only where someone switches it on.
  * Left:  skip — the row stays in the queue, it is simply not this one.
- * Tap:   everything about the row, with "Choose" at the bottom.
+ * Tap:   the sheet, to choose something else.
+ * Details (small button on the card): everything about the row.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -195,7 +196,7 @@ private fun RowDetails(row: Waiting1, guessLabel: String?, onChoose: () -> Unit)
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)
         .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        val name = rowTitle(row.counterparty, row.description, row.kind, 200)
+        val name = rowTitle(row.counterparty, row.description, row.kind, Int.MAX_VALUE)
         Text(name.title.ifEmpty { "—" }, style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold)
         Text(Fmt.signedMoney(row.amount, row.currency),
@@ -259,7 +260,7 @@ private fun SwipeCard(
                 translationX = x
                 rotationZ = (x / 60f).coerceIn(-6f, 6f)
             }
-            .clickable(onClick = onOpen)
+            .clickable(onClick = onTap)
             .pointerInput(row.id) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
@@ -274,11 +275,18 @@ private fun SwipeCard(
             },
     ) {
         Column(Modifier.background(tint).padding(20.dp).fillMaxWidth()) {
-            Text(Fmt.signedMoney(row.amount, row.currency),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (row.amount < 0) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.primary)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(Fmt.signedMoney(row.amount, row.currency),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (row.amount < 0) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.primary)
+                TextButton(onClick = onOpen,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+                    Text(stringResource(R.string.triage_details), style = MaterialTheme.typography.labelMedium)
+                }
+            }
             Spacer(Modifier.height(8.dp))
             val name = rowTitle(row.counterparty, row.description, row.kind, 90)
             Text(name.title.ifEmpty { "—" }, style = MaterialTheme.typography.bodyLarge)

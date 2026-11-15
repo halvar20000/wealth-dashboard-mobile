@@ -11,6 +11,9 @@ Tag kommt darüber eine neue. Eine Überschrift ist `## 1.2.3`, jeder
 Eintrag eine Zeile mit `- `. Text vor der ersten Überschrift zeigen die
 Apps nicht.
 
+## 1.2.13
+- Einordnen: Ein Tipp auf die Karte öffnet wieder direkt die Auswahl. Die Details der Buchung gibt es über den kleinen Knopf „Details“ oben rechts auf der Karte; dort steht der Buchungstext vollständig.
+
 ## 1.2.12
 - Einordnen: Ein Tipp auf die Karte zeigt alle Details der Buchung (ganzer Buchungstext, Gegenpartei, Konto, Art, Vorschlag); „Auswählen“ führt von dort weiter.
 - „Als Regel merken“ ist beim Einordnen jetzt standardmäßig aus, auch beim Wischen nach rechts: Eine Regel entsteht nur noch, wenn du den Schalter bewusst einschaltest.

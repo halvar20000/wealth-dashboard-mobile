@@ -11,7 +11,8 @@ import SwiftUI
 /// Right: take the guess (or, with no guess, open the choices) — for this
 ///        row only; a rule is made only where someone switches it on.
 /// Left:  skip — the row stays in the queue, it is simply not this one.
-/// Tap:   everything about the row, with "Choose" at the bottom.
+/// Tap:   the choices, to pick something else.
+/// Details (small button on the card): everything about the row.
 struct TriageView: View {
     @Environment(AppModel.self) private var model
 
@@ -107,7 +108,8 @@ struct TriageView: View {
                 SwipeCard(row: row, guessLabel: guessLabel, owning: owning,
                           onRight: { takeGuess(row) },
                           onLeft: { skip() },
-                          onTap: { showing = row })
+                          onTap: { choosing = row },
+                          onOpen: { showing = row })
                     .id(row.id)
                 if let note {
                     Text(note).font(.footnote).foregroundStyle(.secondary)
@@ -208,6 +210,7 @@ private struct SwipeCard: View {
     let onRight: () -> Void
     let onLeft: () -> Void
     let onTap: () -> Void
+    let onOpen: () -> Void
 
     @State private var offset: CGFloat = 0
     private let decided: CGFloat = 120
@@ -215,9 +218,15 @@ private struct SwipeCard: View {
     var body: some View {
         let tint: Color = offset > 40 ? .gain : offset < -40 ? .loss : .clear
         VStack(alignment: .leading, spacing: 8) {
-            Text(Fmt.signedMoney(row.amount, row.currency))
-                .font(.system(size: 30, weight: .bold))
-                .foregroundStyle((row.amount ?? 0) < 0 ? Color.primary : Color.gain)
+            HStack(alignment: .firstTextBaseline) {
+                Text(Fmt.signedMoney(row.amount, row.currency))
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundStyle((row.amount ?? 0) < 0 ? Color.primary : Color.gain)
+                Spacer()
+                Button("Details", action: onOpen)
+                    .font(.footnote)
+                    .buttonStyle(.borderless)
+            }
             let name = row.rowTitle(limit: 90)
             Text(name.title.isEmpty ? "—" : name.title).font(.body)
             if let subtitle = name.subtitle {
@@ -234,7 +243,7 @@ private struct SwipeCard: View {
                 Label("Swipe right: \(guessLabel)", systemImage: "arrow.right")
                     .font(.callout.weight(.semibold))
             } else {
-                Label("Swipe right to choose", systemImage: "arrow.right").font(.callout.weight(.semibold))
+                Label("Tap to choose", systemImage: "hand.tap").font(.callout.weight(.semibold))
             }
         }
         .padding(20)
@@ -260,7 +269,7 @@ private struct SwipeCard: View {
                     }
                 }
         )
-        .accessibilityAction(named: "Details", onTap)
+        .accessibilityAction(named: "Details", onOpen)
         .accessibilityAction(named: "Take the guess", onRight)
         .accessibilityAction(named: "Skip", onLeft)
     }
@@ -389,7 +398,7 @@ private struct RowDetails: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
-                        let name = row.rowTitle(limit: 200)
+                        let name = row.rowTitle(limit: .max)
                         Text(name.title.isEmpty ? "—" : name.title).font(.headline)
                         Text(Fmt.signedMoney(row.amount, row.currency))
                             .font(.title2.weight(.bold))
