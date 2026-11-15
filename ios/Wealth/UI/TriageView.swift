@@ -8,9 +8,10 @@ import SwiftUI
 /// thing somebody finishes on a train — which is why a verdict is written
 /// down before it is sent (contract rule 2, `AppModel.decide`).
 ///
-/// Right: take the guess (or, with no guess, open the choices).
+/// Right: take the guess (or, with no guess, open the choices) — for this
+///        row only; a rule is made only where someone switches it on.
 /// Left:  skip — the row stays in the queue, it is simply not this one.
-/// Tap:   the choices, to pick something else.
+/// Tap:   everything about the row, with "Choose" at the bottom.
 struct TriageView: View {
     @Environment(AppModel.self) private var model
 
@@ -23,6 +24,10 @@ struct TriageView: View {
     @State private var error: String?
     @State private var note: String?
     @State private var choosing: QueueRow?
+    @State private var showing: QueueRow?
+    /// "Choose" on the details: the choices open once that sheet is gone,
+    /// because two sheets cannot be on screen at once.
+    @State private var chooseAfter: QueueRow?
 
     var body: some View {
         NavigationStack {
@@ -52,6 +57,16 @@ struct TriageView: View {
             .navigationBarTitleDisplayMode(.inline)
             .personMenu()
             .task(id: [owning ? 1 : 0, model.person ?? -1]) { await load() }
+            .sheet(item: $showing, onDismiss: {
+                if let row = chooseAfter { chooseAfter = nil; choosing = row }
+            }) { row in
+                RowDetails(row: row, owning: owning,
+                           guessLabel: owning ? nil : row.suggestion.flatMap { g in
+                               queue?.categories.first { $0.slug == g }?.title ?? g }) {
+                    chooseAfter = row
+                    showing = nil
+                }
+            }
             .sheet(item: $choosing) { row in
                 ChoiceSheet(row: row, owning: owning,
                             categories: queue?.categories ?? [],
@@ -92,7 +107,7 @@ struct TriageView: View {
                 SwipeCard(row: row, guessLabel: guessLabel, owning: owning,
                           onRight: { takeGuess(row) },
                           onLeft: { skip() },
-                          onTap: { choosing = row })
+                          onTap: { showing = row })
                     .id(row.id)
                 if let note {
                     Text(note).font(.footnote).foregroundStyle(.secondary)
@@ -131,7 +146,7 @@ struct TriageView: View {
 
     private func takeGuess(_ row: QueueRow) {
         if !owning, let guess = row.suggestion {
-            decide(row, category: guess, owner: nil, pattern: row.pattern, remember: true)
+            decide(row, category: guess, owner: nil, pattern: row.pattern, remember: false)
         } else {
             choosing = row
         }
@@ -218,11 +233,8 @@ private struct SwipeCard: View {
             if let guessLabel {
                 Label("Swipe right: \(guessLabel)", systemImage: "arrow.right")
                     .font(.callout.weight(.semibold))
-                if let pattern = row.pattern, !pattern.isEmpty {
-                    Text("and remember “\(pattern)”").font(.caption).foregroundStyle(.secondary)
-                }
             } else {
-                Label("Tap to choose", systemImage: "hand.tap").font(.callout.weight(.semibold))
+                Label("Swipe right to choose", systemImage: "arrow.right").font(.callout.weight(.semibold))
             }
         }
         .padding(20)
@@ -248,6 +260,7 @@ private struct SwipeCard: View {
                     }
                 }
         )
+        .accessibilityAction(named: "Details", onTap)
         .accessibilityAction(named: "Take the guess", onRight)
         .accessibilityAction(named: "Skip", onLeft)
     }
@@ -266,7 +279,9 @@ private struct ChoiceSheet: View {
     let onPick: (String?, String?, String?, Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var remember = true
+    /// Off to start with: a rule files every row like this one from now
+    /// on, and a wrong one does a lot of damage quietly.
+    @State private var remember = false
     @State private var pattern = ""
     @State private var search = ""
 
@@ -356,5 +371,64 @@ private struct ChoiceSheet: View {
         let words = pattern.trimmingCharacters(in: .whitespaces)
         onPick(category, owner, words.isEmpty ? nil : words, remember)
         dismiss()
+    }
+}
+
+/// Everything the queue knows about one row — the card cuts the bank's
+/// text short, and the row is often only recognisable by all of it.
+private struct RowDetails: View {
+    let row: QueueRow
+    let owning: Bool
+    let guessLabel: String?
+    let onChoose: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 4) {
+                        let name = row.rowTitle(limit: 200)
+                        Text(name.title.isEmpty ? "—" : name.title).font(.headline)
+                        Text(Fmt.signedMoney(row.amount, row.currency))
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(Color.sign(row.amount))
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Section {
+                    LabeledContent("Date", value: Fmt.day(row.txnDate))
+                    if let v = row.accountName, !v.isEmpty { LabeledContent("Account", value: v) }
+                    if let v = row.counterparty, !v.isEmpty { LabeledContent("Counterparty", value: v) }
+                    if let v = row.description, !v.isEmpty {
+                        LabeledContent("Description") { Text(v).multilineTextAlignment(.trailing) }
+                    }
+                    LabeledContent("Kind", value: kindLabel(row.kind))
+                    LabeledContent("Amount", value: Fmt.price(row.amount, row.currency))
+                    if owning, let v = row.label ?? row.category, !v.isEmpty {
+                        LabeledContent("Category", value: v)
+                    }
+                    if let guessLabel { LabeledContent("Guess", value: guessLabel) }
+                    LabeledContent("Number", value: "#\(row.id)")
+                }
+                .font(.subheadline)
+
+                Section {
+                    Button {
+                        onChoose()
+                    } label: {
+                        Label("Choose", systemImage: "checkmark")
+                    }
+                }
+            }
+            .navigationTitle("Transaction")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }

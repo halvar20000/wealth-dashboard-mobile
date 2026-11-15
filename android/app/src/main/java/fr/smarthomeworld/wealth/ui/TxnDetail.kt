@@ -150,7 +150,7 @@ private fun Details(
 }
 
 @Composable
-private fun Line(label: String, value: String) {
+internal fun Line(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Text(label, Modifier.width(120.dp), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
