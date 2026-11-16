@@ -41,6 +41,9 @@
     <string name="your_dashboard">deinem Dashboard</string>
     <string name="setting_lock">Entsperren verlangen</string>
     <string name="setting_lock_note">Fingerabdruck, Gesicht oder die PIN des Telefons, bevor die Zahlen erscheinen.</string>
+    <string name="setting_number_format">Zahlenformat</string>
+    <string name="number_format_phone">Wie das Handy</string>
+    <string name="setting_number_format_note">Wie Beträge und Prozente in der App und im Widget geschrieben werden, unabhängig von der Sprache des Handys.</string>
     <string name="setting_watch">Im Hintergrund beobachten</string>
     <string name="setting_watch_note">Alle paar Stunden: senden, was du offline entschieden hast, Zahlen und Widget aktualisieren, und Bescheid geben, wenn ein Konto bald leer ist, eine Bankverbindung nicht mehr läuft oder die Warteschlange gewachsen ist.</string>
     <string name="forget">Dieses Dashboard vergessen</string>

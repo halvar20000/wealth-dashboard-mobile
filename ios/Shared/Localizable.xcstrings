@@ -424,6 +424,16 @@
         }
       }
     },
+    "As the phone writes them" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie das Handy"
+          }
+        }
+      }
+    },
     "Ask to unlock" : {
       "localizations" : {
         "de" : {
@@ -944,6 +954,16 @@
         }
       }
     },
+    "How amounts and percentages are written in the app and the widget, whatever the phone's language." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie Beträge und Prozente in der App und im Widget geschrieben werden, unabhängig von der Sprache des Handys."
+          }
+        }
+      }
+    },
     "Import into…" : {
       "localizations" : {
         "de" : {
@@ -1320,6 +1340,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nummer"
+          }
+        }
+      }
+    },
+    "Number format" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahlenformat"
           }
         }
       }

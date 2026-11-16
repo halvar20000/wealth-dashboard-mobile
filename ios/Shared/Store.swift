@@ -108,6 +108,17 @@ final class Store {
         set { defaults.set(newValue, forKey: "last_notice") }
     }
 
+    /// How numbers are written: "" as the phone does, else a key of
+    /// Fmt.shapes. The app's defaults first; the Keychain copy is what
+    /// the widget, which has no such defaults, reads.
+    var numberFormat: String {
+        get { defaults.string(forKey: "number_format") ?? read("number_format") ?? "" }
+        set {
+            defaults.set(newValue, forKey: "number_format")
+            write("number_format", newValue.isEmpty ? nil : newValue)
+        }
+    }
+
     /// Ask for Face ID, Touch ID or the passcode before the figures show.
     var lockEnabled: Bool {
         get { defaults.bool(forKey: "lock") }

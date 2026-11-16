@@ -11,6 +11,9 @@ Tag kommt darüber eine neue. Eine Überschrift ist `## 1.2.3`, jeder
 Eintrag eine Zeile mit `- `. Text vor der ersten Überschrift zeigen die
 Apps nicht.
 
+## 1.2.14
+- Einstellungen: Zahlenformat wählbar. „Wie das Handy“ (wie bisher), 1.234,56, 1,234.56, 1 234,56 oder 1’234.56. Gilt für Beträge und Prozente in der App und im Widget, unabhängig von der Sprache des Handys.
+
 ## 1.2.13
 - Einordnen: Ein Tipp auf die Karte öffnet wieder direkt die Auswahl. Die Details der Buchung gibt es über den kleinen Knopf „Details“ oben rechts auf der Karte; dort steht der Buchungstext vollständig.
 

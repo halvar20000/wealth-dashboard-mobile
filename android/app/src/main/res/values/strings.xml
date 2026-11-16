@@ -43,6 +43,9 @@
     <string name="your_dashboard">your dashboard</string>
     <string name="setting_lock">Ask to unlock</string>
     <string name="setting_lock_note">Fingerprint, face or the phone\'s PIN before the figures show.</string>
+    <string name="setting_number_format">Number format</string>
+    <string name="number_format_phone">As the phone writes them</string>
+    <string name="setting_number_format_note">How amounts and percentages are written in the app and the widget, whatever the phone\'s language.</string>
     <string name="setting_watch">Watch in the background</string>
     <string name="setting_watch_note">Every few hours: send what you decided offline, refresh the figures and the widget, and say something when an account is about to run out, a bank link has stopped, or the queue has grown.</string>
     <string name="forget">Forget this dashboard</string>

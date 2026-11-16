@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import fr.smarthomeworld.wealth.ui.Fmt
 import kotlinx.serialization.builtins.ListSerializer
 
 /**
@@ -27,6 +28,20 @@ class Store(context: Context) {
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
     }
+
+    // Every part of the app that formats an amount makes a Store first —
+    // the app, the widget, the background round — so this is where the
+    // picked number format reaches Fmt.
+    init { Fmt.shape = numberFormat }
+
+    /** How numbers are written: "" as the phone does, else a key of
+     *  Fmt.SHAPES ("de" 1.234,56, "en" 1,234.56, …). */
+    var numberFormat: String
+        get() = prefs.getString("number_format", null).orEmpty()
+        set(value) {
+            prefs.edit().putString("number_format", value).apply()
+            Fmt.shape = value
+        }
 
     var baseUrl: String?
         get() = prefs.getString("base_url", null)
@@ -55,6 +70,7 @@ class Store(context: Context) {
 
     fun forget() {
         prefs.edit().clear().apply()
+        Fmt.shape = ""
     }
 
     /**

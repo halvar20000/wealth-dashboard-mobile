@@ -177,6 +177,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy()
     }
 
+    val numberFormat: String get() = store.numberFormat
+
+    fun setNumberFormat(code: String) {
+        store.numberFormat = code
+        _state.value = _state.value.copy()
+    }
+
     fun setLock(on: Boolean) {
         store.lockEnabled = on
         _state.value = _state.value.copy()

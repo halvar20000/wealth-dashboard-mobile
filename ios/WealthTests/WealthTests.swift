@@ -229,6 +229,21 @@ final class WealthTests: XCTestCase {
         XCTAssertEqual(Fmt.percent(-0.02, locale: us), "-2.00 %")
     }
 
+    // A number format picked in Settings swaps the separators and keeps
+    // the rest of the phone's way: where the symbol goes, the spacing.
+    func testPickedNumberFormat() {
+        let us = Locale(identifier: "en_US")
+        let de = Locale(identifier: "de_DE")
+        XCTAssertEqual(Fmt.money(12234.56, "USD", locale: us, shape: "de"), "$12.234,56")
+        XCTAssertTrue(Fmt.money(12234.56, "EUR", locale: de, shape: "en").hasPrefix("12,234.56"))
+        XCTAssertEqual(Fmt.money(12234.56, "USD", locale: us, shape: ""), "$12,234.56")
+        XCTAssertEqual(Fmt.money(12234.56, "USD", locale: us, shape: "nonsense"), "$12,234.56")
+        XCTAssertEqual(Fmt.signedMoney(-1234.5, "USD", locale: us, shape: "ch"), "−$1\u{2019}234.50")
+        XCTAssertEqual(Fmt.percent(0.1234, locale: de, shape: "en"), "+12.34 %")
+        XCTAssertEqual(Fmt.quantity(1061, locale: us, shape: "fr"), "1\u{202F}061")
+        XCTAssertEqual(Fmt.example("de"), "1.234,56")
+    }
+
     func testDay() {
         let us = Locale(identifier: "en_US")
         XCTAssertEqual(Fmt.day("2026-09-24", locale: us), "Sep 24, 2026")

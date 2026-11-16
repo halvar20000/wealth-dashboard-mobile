@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
@@ -19,6 +20,18 @@ struct SettingsView: View {
                     NavigationLink("Categories") { CategoriesView() }
                 } footer: {
                     Text("Create and edit the categories.")
+                }
+                // The separators of every amount, if not the phone's own.
+                Section {
+                    Picker("Number format", selection: Binding(get: { NumberShape.shared.code },
+                                                               set: { NumberShape.shared.set($0); WidgetCenter.shared.reloadAllTimelines() })) {
+                        Text("As the phone writes them").tag("")
+                        ForEach(Fmt.shapeOrder, id: \.self) { code in
+                            Text(verbatim: Fmt.example(code)).tag(code)
+                        }
+                    }
+                } footer: {
+                    Text("How amounts and percentages are written in the app and the widget, whatever the phone's language.")
                 }
                 Section {
                     Toggle("Ask to unlock", isOn: Binding(get: { model.lockEnabled },
