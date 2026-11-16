@@ -45,6 +45,7 @@ Legend: **✅** shipped · **🚧** in progress · **—** not started ·
 | 20 | A row's own page: every field, file it, correct it | ✅ 1.2.8 | ✅ 1.2.8 | from every list of rows; `set_category` (remember off by default) and `update_transaction` (description, counterparty, date, amount) |
 | 21 | Categories: make, rename, recolour, regroup, delete | ✅ 1.2.8 | ✅ 1.2.8 | Settings → Categories; `add_category`, `update_category`, `delete_category`, dashboard ≥ 0.79.2 |
 | 22 | Accounts by type, each type with its sum | ✅ 1.2.8 | ✅ 1.2.8 | Portfolio → Accounts; the depots' total among them |
+| 23 | Number format of your own | ✅ 1.2.14 | ✅ 1.2.14 | Settings: the phone's, 1.234,56, 1,234.56, 1 234,56 or 1’234.56; only the separators change (`Fmt` reshape), kept on the phone (iOS: defaults + Keychain for the widget) |
 
 ## What the dashboard needs for each
 

@@ -271,6 +271,8 @@ private fun App(vm: MainViewModel, unlock: (() -> Unit) -> Unit, start: Tab = Ta
                     lock = vm.lockEnabled,
                     watch = vm.watchEnabled,
                     onLock = { vm.setLock(it) },
+                    numberFormat = vm.numberFormat,
+                    onNumberFormat = { vm.setNumberFormat(it) },
                     onWatch = { vm.setWatch(it) },
                     onForget = { vm.forget() },
                     onCategories = { tab = Tab.Categories; vm.loadCategories() },
@@ -341,6 +343,8 @@ private fun SettingsScreen(
     lock: Boolean,
     watch: Boolean,
     onLock: (Boolean) -> Unit,
+    numberFormat: String,
+    onNumberFormat: (String) -> Unit,
     onWatch: (Boolean) -> Unit,
     onForget: () -> Unit,
     onCategories: () -> Unit,
@@ -381,6 +385,33 @@ private fun SettingsScreen(
                     ask.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             })
+        }
+        // The separators of every amount, if not the phone's own.
+        var shape by remember { mutableStateOf(numberFormat) }
+        var picking by remember { mutableStateOf(false) }
+        val phone = stringResource(R.string.number_format_phone)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.setting_number_format), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.setting_number_format_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Box {
+                TextButton(onClick = { picking = true }) {
+                    Text(if (shape.isEmpty()) phone else Fmt.example(shape))
+                }
+                DropdownMenu(expanded = picking, onDismissRequest = { picking = false }) {
+                    (listOf("") + Fmt.SHAPES.keys).forEach { code ->
+                        DropdownMenuItem(
+                            text = { Text(if (code.isEmpty()) phone else Fmt.example(code)) },
+                            onClick = { picking = false; shape = code; onNumberFormat(code) },
+                            trailingIcon = { if (shape == code) Icon(Icons.Default.Check, null) },
+                        )
+                    }
+                }
+            }
         }
         // The dashboard's category list, to make and change them here.
         Row(Modifier.fillMaxWidth().clickable(onClick = onCategories).padding(vertical = 4.dp),

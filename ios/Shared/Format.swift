@@ -11,11 +11,62 @@ extension Color {
     }
 }
 
+/// The number format picked in Settings: "" for the phone's own, else a
+/// key of `Fmt.shapes`. Observable, so a view that wrote an amount draws
+/// it again when the choice changes; the widget reads the Keychain copy.
+@Observable
+final class NumberShape {
+    static let shared = NumberShape()
+    var code: String
+
+    init(code: String? = nil) {
+        self.code = code ?? Store().numberFormat
+    }
+
+    func set(_ code: String) {
+        let valid = Fmt.shapes[code] == nil ? "" : code
+        Store().numberFormat = valid
+        self.code = valid
+    }
+}
+
 /// Numbers as the phone's language writes them, in the money's own unit
 /// (contract rule 3): always with its cents, so 3 300 € and 200,30 €
-/// read alike — "3.300,00 €".
+/// read alike — "3.300,00 €". Settings can pick other separators.
 enum Fmt {
-    static func money(_ value: Double?, _ currency: String?, locale: Locale = .current) -> String {
+    /// The separators a user can pick instead of the phone's: group and
+    /// decimal. The same four as the dashboard's setting.
+    static let shapes: [String: (group: Character, decimal: Character)] = [
+        "de": (".", ","),
+        "en": (",", "."),
+        "fr": ("\u{202F}", ","),
+        "ch": ("\u{2019}", "."),
+    ]
+    /// The order Settings offers them in.
+    static let shapeOrder = ["de", "en", "fr", "ch"]
+
+    /// "1.234,56": how a shape is offered in Settings.
+    static func example(_ code: String) -> String {
+        guard let s = shapes[code] else { return "" }
+        return "1\(s.group)234\(s.decimal)56"
+    }
+
+    /// The phone's text with the picked separators. Only a mark between
+    /// two digits is a separator, so "kr." or "Fr." keep their dot.
+    static func reshape(_ text: String, _ f: NumberFormatter, _ shape: String) -> String {
+        guard let s = shapes[shape] else { return text }
+        let decimals = Set([f.decimalSeparator, f.currencyDecimalSeparator].compactMap { $0 }.flatMap { Array($0) })
+        let chars = Array(text)
+        var out = ""
+        for (i, c) in chars.enumerated() {
+            let between = i > 0 && i < chars.count - 1 && chars[i - 1].isNumber && chars[i + 1].isNumber
+            if !between || c.isNumber { out.append(c) }
+            else { out.append(decimals.contains(c) ? s.decimal : s.group) }
+        }
+        return out
+    }
+
+    static func money(_ value: Double?, _ currency: String?, locale: Locale = .current, shape: String = NumberShape.shared.code) -> String {
         guard let value else { return "—" }
         let f = NumberFormatter()
         f.locale = locale
@@ -23,12 +74,12 @@ enum Fmt {
         f.currencyCode = (currency ?? "EUR").uppercased()
         f.minimumFractionDigits = 2
         f.maximumFractionDigits = 2
-        return f.string(from: NSNumber(value: value)) ?? "\(value)"
+        return reshape(f.string(from: NSNumber(value: value)) ?? "\(value)", f, shape)
     }
 
     /// A unit price: always with its decimals, whatever its size — a
     /// share at 1 234,56 € is not "1 235 €".
-    static func price(_ value: Double?, _ currency: String?, locale: Locale = .current) -> String {
+    static func price(_ value: Double?, _ currency: String?, locale: Locale = .current, shape: String = NumberShape.shared.code) -> String {
         guard let value else { return "—" }
         let f = NumberFormatter()
         f.locale = locale
@@ -36,27 +87,28 @@ enum Fmt {
         f.currencyCode = (currency ?? "EUR").uppercased()
         f.minimumFractionDigits = 2
         f.maximumFractionDigits = abs(value) < 10 ? 4 : 2
-        return f.string(from: NSNumber(value: value)) ?? "\(value)"
+        return reshape(f.string(from: NSNumber(value: value)) ?? "\(value)", f, shape)
     }
 
     /// A number of shares: whole where it is whole, up to four places
     /// where a savings plan has made it fractional.
-    static func quantity(_ value: Double?, locale: Locale = .current) -> String {
+    static func quantity(_ value: Double?, locale: Locale = .current, shape: String = NumberShape.shared.code) -> String {
         guard let value else { return "—" }
         let f = NumberFormatter()
         f.locale = locale
         f.numberStyle = .decimal
         f.minimumFractionDigits = 0
         f.maximumFractionDigits = 4
-        return f.string(from: NSNumber(value: value)) ?? "\(value)"
+        return reshape(f.string(from: NSNumber(value: value)) ?? "\(value)", f, shape)
     }
 
-    static func signedMoney(_ value: Double?, _ currency: String?, locale: Locale = .current) -> String {
+    static func signedMoney(_ value: Double?, _ currency: String?, locale: Locale = .current,
+                            shape: String = NumberShape.shared.code) -> String {
         guard let value else { return "—" }
-        return (value >= 0 ? "+" : "−") + money(abs(value), currency, locale: locale)
+        return (value >= 0 ? "+" : "−") + money(abs(value), currency, locale: locale, shape: shape)
     }
 
-    static func percent(_ fraction: Double?, locale: Locale = .current) -> String {
+    static func percent(_ fraction: Double?, locale: Locale = .current, shape: String = NumberShape.shared.code) -> String {
         guard let fraction else { return "—" }
         let f = NumberFormatter()
         f.locale = locale
@@ -64,7 +116,7 @@ enum Fmt {
         f.minimumFractionDigits = 2
         f.maximumFractionDigits = 2
         f.positivePrefix = "+"
-        return (f.string(from: NSNumber(value: fraction * 100)) ?? "\(fraction * 100)") + " %"
+        return reshape(f.string(from: NSNumber(value: fraction * 100)) ?? "\(fraction * 100)", f, shape) + " %"
     }
 
     /// "2026-09-24" or a full timestamp, as a medium date.
